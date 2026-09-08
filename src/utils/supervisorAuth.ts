@@ -146,18 +146,21 @@ export async function updateSupervisorConfigInCloud(
 
   return updated;
 }
+export const isEmailAuthorizedSupervisor = (email: string, config: SupervisorConfig): boolean => {
+  if (!email) return false;
+  const cleanEmail = email.trim().toLowerCase();
 
+  // 1. الفحص مع المشرف الرئيسي
+  if (cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase()) return true;
+
+  // 2. الفحص في القائمة المصرح لها بحروف صغيرة
+  return config.authorizedEmails.some(
+    (authorizedEmail) => authorizedEmail.trim().toLowerCase() === cleanEmail
+  );
+};
 /**
  * Checks if a given email is an authorized supervisor
  */
-export function isEmailAuthorizedSupervisor(email: string | null | undefined, config?: SupervisorConfig): boolean {
-  if (!email) return false;
-  const cleanEmail = email.trim().toLowerCase();
-  if (cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase()) return true;
-
-  const currentConfig = config || getLocalSupervisorConfig();
-  return currentConfig.authorizedEmails.some(e => e.toLowerCase() === cleanEmail);
-}
 
 /**
  * Validates a supervisor passcode
