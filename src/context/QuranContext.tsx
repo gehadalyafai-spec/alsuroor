@@ -166,7 +166,7 @@ interface QuranContextType {
     accessCode?: string;
     initialRub?: number; 
     notes?: string 
-  }) => void;
+  }) => Promise<void>;
   updateStudent: (id: string, partial: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
   recordSessionResult: (data: {
@@ -343,7 +343,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   
   // Guard flag: strictly prevents sending empty/intermediate state to Firestore until cloud data has been loaded
   const isInitialLoadDoneRef = useRef<boolean>(false);
-  const saveTimeoutRef = useRef<any>(null);
   const lastLocalWriteRef = useRef<number>(0);
   const studentsRef = useRef(students);
   studentsRef.current = students;
@@ -424,7 +423,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const circleDocRef = doc(db, 'users', user.uid, 'circleData', 'main');
       const unsub = onSnapshot(circleDocRef, (snap) => {
-        if (Date.now() - lastLocalWriteRef.current < 4000) {
+        if (Date.now() - lastLocalWriteRef.current < 2000) {
           return;
         }
 
@@ -746,16 +745,13 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [user, students, sessionRecords, dailyRevisionRecords, selectedDate, activeTab, selectedStudentId, isLoadingCloud, activeRole]);
 
-  // Local storage provides continuous instant offline persistence for all operations.
-  // Manual cloud save is provided via saveToCloudNow (and during student registration)
-  // to avoid exhausting Firestore daily write limits and write stream queues.
   const saveToCloudNow = async () => {
     resetQuotaExceeded();
     await persistToCloud();
   };
 
-  // Add new student
-  const addStudent = ({
+  // Add new student with immediate Cloud Sync
+  const addStudent = async ({
     name,
     phone = '',
     parentPhone = '',
@@ -802,8 +798,37 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       avatarColor: avatarColors[Math.floor(Math.random() * avatarColors.length)],
     };
 
-    setStudents(prev => ensureAllStudentsHaveUniqueCodes([newStudent, ...prev]));
+    const updatedStudents = ensureAllStudentsHaveUniqueCodes([newStudent, ...students]);
+    setStudents(updatedStudents);
     lastLocalWriteRef.current = Date.now();
+
+    // Direct Cloud Save to Firestore
+    if (user?.uid) {
+      try {
+        setSyncStatus('saving');
+        const payload = {
+          students: updatedStudents,
+          sessionRecords,
+          dailyRevisionRecords,
+          userEmail: user.email || '',
+          updatedAt: serverTimestamp(),
+        };
+
+        // 1. Save in supervisor personal path
+        await safeSetDoc(doc(db, 'users', user.uid, 'circleData', 'main'), payload, { merge: true });
+
+        // 2. Mirror in central shared circle
+        await safeSetDoc(doc(db, 'circles', 'central_main_circle'), payload, { merge: true });
+
+        // 3. Register student code for cross-device access
+        await registerStudentsInFirestoreRegistry(updatedStudents, user.uid, user.email || '');
+
+        setSyncStatus('synced');
+        setLastSyncedAt(new Date());
+      } catch (err) {
+        console.error('Error saving student to Cloud:', err);
+      }
+    }
   };
 
   // Student portal and submissions logic
@@ -906,7 +931,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const sub = submissions.find(s => s.id === submissionId);
     if (!sub) return;
 
-    const feedback = options?.supervisorFeedback || 'تم الاعتماد بنجاح، بارك الله فيك';
+    const feedback = options?.supervisorFeedback || 'تم الاعتماد بنجاح';
 
     let updatedStudents = [...students];
     let updatedSessions = [...sessionRecords];
@@ -932,7 +957,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         assignedCount: sub.revisionData.assignedRubs?.length || assignment.totalCount,
         status: sub.revisionData.status,
         rating: sub.revisionData.rating,
-        notes: sub.revisionData.notes ? `[الطالب]: ${sub.revisionData.notes} • [المشرف]: ${feedback}` : feedback,
+        notes: sub.revisionData.notes ? `[الطالب]: ${sub.revisionData.notes} • [المعلم]: ${feedback}` : feedback,
         verifiedByTeacher: true,
         updatedAt: new Date().toISOString(),
       };
@@ -953,7 +978,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const dateObj = new Date(sub.date);
       const dayIndex = isNaN(dateObj.getDay()) ? 0 : dateObj.getDay();
-      const dayName = dayIndex === 0 ? 'الأحد' : dayIndex === 3 ? 'الأربعاء' : 'يوم إضافي';
+      const dayName = dayIndex === 0 ? 'الأحد' : dayIndex === 3 ? 'الأربعاء' : 'يوم آخر';
       const plan = getRequiredRecitationForSession(studentObj?.currentRub || 1);
 
       const newRecord: SessionRecord = {
@@ -966,7 +991,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         grade,
         mistakesCount: options?.mistakesCount ?? (sub.sessionData.mistakesCount || 0),
         hesitationsCount: options?.hesitationsCount ?? (sub.sessionData.hesitationsCount || 0),
-        teacherNotes: (sub.sessionData.studentNotes ? `[الطالب]: ${sub.sessionData.studentNotes}\n` : '') + `[المشرف]: ${feedback}`,
+        teacherNotes: (sub.sessionData.studentNotes ? `[الطالب]: ${sub.sessionData.studentNotes}\n` : '') + `[المعلم]: ${feedback}`,
         advancedToNext: advance && grade !== 'needs_repeat' && grade !== 'absent',
         createdAt: new Date().toISOString(),
       };
@@ -974,7 +999,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updatedSessions = [newRecord, ...updatedSessions];
       setSessionRecords(updatedSessions);
 
-      // If passed and advance is approved, increment the student's target quarter (supporting multiple rubs if recited)
+      // Increment target quarter if passed
       if (advance && grade !== 'needs_repeat' && grade !== 'absent' && studentObj) {
         const recitedCount = sub.sessionData.recitedRubs?.length || 1;
         const advanceCount = options?.advanceCount ?? Math.max(1, recitedCount);
@@ -1027,7 +1052,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updatedSub: StudentSubmission = {
       ...sub,
       status: 'rejected',
-      supervisorFeedback: supervisorFeedback || 'يرجى مراجعة المقرر وإعادة الإرسال',
+      supervisorFeedback: supervisorFeedback || 'نرجو إعادة التسميع والمراجعة بشكل جيد',
       reviewedAt: new Date().toISOString(),
     };
 
@@ -1057,24 +1082,23 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const rawInput = accessCode ? accessCode.trim() : '';
     const cleanCode = normalizeStudentCode(rawInput);
     if (!cleanCode && !rawInput) {
-      return { success: false, message: 'يرجى إدخال رمز وصول الطالب' };
+      return { success: false, message: 'يرجى إدخال رمز الطالب' };
     }
 
-    // Helper to check PIN
     const verifyPin = (targetStudent: Student): { valid: boolean; requiresPin?: boolean; message?: string } => {
       if (targetStudent.pin && targetStudent.pin.trim()) {
         if (!pin || !pin.trim()) {
           return {
             valid: false,
             requiresPin: true,
-            message: `أهلاً بك يا ${targetStudent.name}، يرجى إدخال الرقم السري (PIN) الخاص بك لإتمام الدخول.`
+            message: `أهلاً بك يا ${targetStudent.name}، يرجى إدخال رمز الحماية الخاص بك (PIN).`
           };
         }
         if (pin.trim() !== targetStudent.pin.trim()) {
           return {
             valid: false,
             requiresPin: true,
-            message: 'الرقم السري (PIN) غير صحيح. يرجى المحاولة مرة أخرى أو مراجعة المشرف.'
+            message: 'رمز الحماية (PIN) غير صحيح.'
           };
         }
       }
@@ -1097,7 +1121,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setActiveStudentId(matchedLocal.id);
       setActiveRole('student');
 
-      // If supervisor UID is not known yet, try resolving in background
       if (!studentSupervisorUid) {
         const candidateKey = matchedLocal.accessCode || cleanCode;
         if (candidateKey) {
@@ -1121,7 +1144,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: true };
     }
 
-    // 2. Build exhaustive set of search keys for cross-device / cloud registry lookup
+    // 2. Build search keys
     const numOnly = extractCodeNumber(cleanCode);
     const cleanDigits = rawInput.replace(/[^0-9]/g, '');
 
@@ -1137,7 +1160,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       cleanDigits.startsWith('0') ? cleanDigits.substring(1) : '',
     ].filter(Boolean)));
 
-    // 3. Query Firestore student_registry for each possible key
+    // 3. Query Firestore registry
     for (const key of keysToTry) {
       try {
         const regRef = doc(db, 'student_registry', key);
@@ -1156,15 +1179,11 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               if (supervisorEmail) {
                 localStorage.setItem(STORAGE_KEY + '_studentSupervisorEmail', supervisorEmail);
               }
-            } catch {
-              // ignore
-            }
+            } catch {}
 
-            // Fetch circle details from supervisor's account
             try {
               let circleSnap = await safeGetDoc(doc(db, 'users', supervisorUid, 'circleData', 'main'));
               if (!circleSnap || !circleSnap.exists() || !circleSnap.data().students || circleSnap.data().students.length === 0) {
-                // Try central shared circle
                 circleSnap = await safeGetDoc(doc(db, 'circles', 'central_main_circle'));
               }
 
@@ -1204,10 +1223,9 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           }
 
-          // Fallback: Reconstruct student from registry document payload directly
           const fallbackStudent: Student = regData.studentData || {
             id: regData.studentId || ('stu_' + Date.now()),
-            name: regData.studentName || 'طالب الحلقة',
+            name: regData.studentName || 'طالب جديد',
             accessCode: regData.accessCode || cleanCode,
             currentRub: regData.currentRub || 1,
             completedRubCount: regData.completedRubCount || 0,
@@ -1239,7 +1257,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return { 
       success: false, 
-      message: `لم يتم العثور على طالب برمز "${accessCode}". تأكد من صحة الرمز أو راجع مشرف الحلقة لمنحك الرمز الصحيح.` 
+      message: `لم نتمكن من العثور على طالب بالرمز "${accessCode}".` 
     };
   };
 
@@ -1279,7 +1297,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (selectedStudentId === id) setSelectedStudentId(null);
   };
 
-  // Record a circle session (Sunday or Wednesday)
   const recordSessionResult = ({
     studentId,
     date,
@@ -1303,7 +1320,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const dateObj = new Date(date);
     const dayIndex = dateObj.getDay();
-    const dayName = dayIndex === 0 ? 'الأحد' : dayIndex === 3 ? 'الأربعاء' : 'يوم إضافي';
+    const dayName = dayIndex === 0 ? 'الأحد' : dayIndex === 3 ? 'الأربعاء' : 'يوم آخر';
 
     const plan = getRequiredRecitationForSession(student.currentRub);
 
@@ -1324,7 +1341,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setSessionRecords(prev => [newRecord, ...prev]);
 
-    // If passed and advance is approved, increment the student's target quarter!
     if (advanceToNext && grade !== 'needs_repeat' && grade !== 'absent') {
       const nextRub = Math.min(240, student.currentRub + 1);
       updateStudent(studentId, {
@@ -1334,7 +1350,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Record Daily Self-Revision
   const recordDailyRevision = (
     studentId: string,
     date: string,
@@ -1395,9 +1410,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.removeItem(STORAGE_KEY + '_students');
       localStorage.removeItem(STORAGE_KEY + '_sessions');
       localStorage.removeItem(STORAGE_KEY + '_revisions');
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   const exportDataJson = () => {
@@ -1445,7 +1458,6 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setDailyRevisionRecords(data.dailyRevisionRecords);
       }
     } else {
-      // merge mode
       if (data.students && Array.isArray(data.students)) {
         setStudents(prev => {
           const map = new Map<string, Student>();
