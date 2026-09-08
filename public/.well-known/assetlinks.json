@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.web.alsuroor_app.twa",
-        "sha256_cert_fingerprints": ["AD:6E:A2:21:57:AA:B3:BF:F8:43:A7:80:A2:19:B3:69:41:36:E7:0D:A6:69:CB:8C:A2:17:D5:15:49:01:FD:66"]
+        "sha256_cert_fingerprints": ["FC:90:82:B4:D1:55:68:7A:31:CF:61:DB:F7:65:A5:D1:C1:48:EB:8E:6C:D7:4C:67:D2:7C:12:F3:C5:D8:D1:64"]
       }
     }]
