@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuran } from '../context/QuranContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   BookOpen, Users, Calendar, CheckSquare, HelpCircle, Plus, 
   Download, Upload, RotateCcw, Cloud, CloudOff, 
@@ -44,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   } = useQuran();
 
   const { user, logout } = useAuth();
+  const { headerPreset, colorPreset } = useTheme();
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [manualSyncing, setManualSyncing] = useState(false);
@@ -90,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
   const activeStudentsCount = students.filter(s => s.status === 'active').length;
 
   return (
-    <header className="bg-stone-900 text-stone-100 border-b border-stone-800 sticky top-0 z-40 shadow-sm" id="app-header">
+    <header className={`border-b sticky top-0 z-40 shadow-sm transition-colors duration-200 ${headerPreset.headerClass}`} id="app-header">
       {/* Top Banner */}
       <div className="max-w-6xl mx-auto px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
         {/* Brand */}
@@ -100,14 +102,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <h1 className="font-bold text-base sm:text-lg tracking-wide text-white font-['Amiri',serif]">
+              <h1 className={`font-bold text-base sm:text-lg tracking-wide font-['Amiri',serif] ${headerPreset.textMainClass}`}>
                 جامع السرور
               </h1>
-              <span className="text-[10px] sm:text-[11px] bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 px-2 py-0.5 rounded-full font-medium">
+              <span className={`text-[10px] sm:text-[11px] border px-2 py-0.5 rounded-full font-medium ${headerPreset.badgeClass}`}>
                 حلقة القرآن الكريم
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-stone-400 hidden xs:block">
+            <p className={`text-[11px] sm:text-xs hidden xs:block ${headerPreset.textSubClass}`}>
               جلسات الأحد والأربعاء (4 أرباع) • وتدوين الورد اليومي (حتى 3 أجزاء)
             </p>
           </div>
@@ -133,27 +135,27 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'خطأ في الاتصال، انقر لإعادة المحاولة'
                   : 'متصل بالسحاب'
               }
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition-colors bg-stone-800/90 border border-stone-700/80 hover:bg-stone-750 text-stone-200 cursor-pointer"
+              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition-colors border cursor-pointer ${headerPreset.btnClass}`}
             >
               {isLoadingCloud || manualSyncing || syncStatus === 'saving' ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-                  <span className="text-emerald-300 hidden md:inline">جارِ المزامنة...</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
+                  <span className="text-emerald-500 hidden md:inline font-bold">جارِ المزامنة...</span>
                 </>
               ) : hasUnsavedChanges ? (
                 <>
                   <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-                  <span className="text-amber-300 font-bold hidden sm:inline">حفظ كل 60ث (معلق)</span>
+                  <span className="text-amber-400 font-bold hidden sm:inline">حفظ كل 60ث (معلق)</span>
                 </>
               ) : syncStatus === 'synced' ? (
                 <>
-                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                  <span className="text-emerald-400 font-bold hidden sm:inline">سحابي (كل 60ث)</span>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-emerald-500 font-bold hidden sm:inline">سحابي (كل 60ث)</span>
                 </>
               ) : syncStatus === 'error' ? (
                 <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-amber-300 hidden sm:inline">إعادة المزامنة</span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-amber-500 hidden sm:inline">إعادة المزامنة</span>
                 </>
               ) : (
                 <>
@@ -167,7 +169,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={onOpenAuthModal}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-colors cursor-pointer"
               >
                 <User className="w-3.5 h-3.5" />
                 <span>تسجيل الدخول</span>
@@ -183,12 +185,12 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenSubmissionsModal}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
                 pendingSubmissionsCount > 0
-                  ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/50 shadow-xs'
-                  : 'bg-stone-800 hover:bg-stone-750 text-stone-300 border-stone-700/80'
+                  ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border-amber-500/50 shadow-xs'
+                  : headerPreset.btnClass
               }`}
               title="مراجعة واعتماد طلبات وأوراد الطلاب"
             >
-              <CheckSquare className={`w-3.5 h-3.5 ${pendingSubmissionsCount > 0 ? 'text-amber-400' : 'text-stone-400'}`} />
+              <CheckSquare className={`w-3.5 h-3.5 ${pendingSubmissionsCount > 0 ? 'text-amber-500' : 'text-stone-400'}`} />
               <span className="hidden sm:inline">طلبات الطلاب</span>
               {pendingSubmissionsCount > 0 && (
                 <span className="w-4 h-4 rounded-full bg-amber-500 text-stone-950 font-bold text-[10px] flex items-center justify-center animate-pulse">
@@ -204,7 +206,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               id="ai-assistant-btn"
               onClick={onOpenAiModal}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-800/90 to-teal-800/90 hover:from-emerald-700 hover:to-teal-700 border border-emerald-500/40 text-emerald-200 hover:text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all cursor-pointer shrink-0 shadow-xs"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 border border-emerald-500/40 text-emerald-100 hover:text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all cursor-pointer shrink-0 shadow-xs"
               title="مساعد الحلقة الذكي (Gemini 3.8 Flash)"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
@@ -216,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="add-student-btn"
             onClick={onOpenAddModal}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors shadow-sm cursor-pointer shrink-0"
+            className={`flex items-center gap-1.5 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors shadow-sm cursor-pointer shrink-0 ${colorPreset.primary} ${colorPreset.hover}`}
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">طالب جديد</span>
@@ -228,10 +230,10 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               id="transfer-data-modal-btn"
               onClick={onOpenTransferModal}
-              className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-750 border border-stone-700/80 text-emerald-400 hover:text-emerald-300 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+              className={`flex items-center gap-1.5 border text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0 ${headerPreset.btnClass}`}
               title="نقل أو استيراد بيانات الطلاب بين الحسابات"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
+              <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500" />
               <span className="hidden md:inline">نقل الحساب</span>
             </button>
           )}
@@ -242,10 +244,10 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               id="open-app-settings-btn"
               onClick={onOpenSettingsModal}
-              className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-750 border border-stone-700/80 text-amber-300 hover:text-amber-200 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+              className={`flex items-center gap-1.5 border text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0 ${headerPreset.btnClass}`}
               title="إعدادات وتخصيص ألوان وتصميم التطبيق"
             >
-              <Palette className="w-3.5 h-3.5 text-amber-400" />
+              <Palette className="w-3.5 h-3.5 text-amber-500" />
               <span className="hidden md:inline">المظهر والإعدادات</span>
             </button>
           )}
@@ -265,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
               {showUserMenu && (
                 <div
                   id="user-dropdown"
-                  className="absolute left-0 mt-2 w-64 bg-stone-800 border border-stone-700 rounded-2xl shadow-2xl py-2 z-50 text-xs text-stone-200 divide-y divide-stone-700/60 animate-in fade-in zoom-in-95 duration-100"
+                  className={`absolute left-0 mt-2 w-64 border rounded-2xl shadow-2xl py-2 z-50 text-xs divide-y divide-stone-500/20 animate-in fade-in zoom-in-95 duration-100 ${headerPreset.dropdownClass}`}
                 >
                   <div className="px-3.5 py-2.5">
                     <div className="flex items-center gap-2">
@@ -273,10 +275,10 @@ export const Header: React.FC<HeaderProps> = ({
                         {user.email ? user.email[0].toUpperCase() : 'U'}
                       </div>
                       <div className="overflow-hidden">
-                        <div className="font-bold text-white truncate text-xs" title={user.email || ''}>
+                        <div className="font-bold truncate text-xs" title={user.email || ''}>
                           {user.email}
                         </div>
-                        <div className="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                        <div className="text-[10px] text-emerald-500 flex items-center gap-1 mt-0.5 font-medium">
                           <ShieldCheck className="w-3 h-3" />
                           <span>حساب معتمد • حفظ تلقائي في السحاب</span>
                         </div>
@@ -291,13 +293,13 @@ export const Header: React.FC<HeaderProps> = ({
                         handleManualSave();
                         setShowUserMenu(false);
                       }}
-                      className="w-full text-right px-3 py-2 hover:bg-stone-700/80 rounded-xl flex items-center justify-between text-stone-200 transition-colors cursor-pointer"
+                      className="w-full text-right px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <Cloud className="w-4 h-4 text-emerald-400" />
+                        <Cloud className="w-4 h-4 text-emerald-500" />
                         <span>مزامنة وحفظ السحاب الآن</span>
                       </div>
-                      <span className="text-[10px] text-stone-400">تحديث</span>
+                      <span className="text-[10px] opacity-70">تحديث</span>
                     </button>
 
                     {onOpenSettingsModal && (
@@ -308,13 +310,13 @@ export const Header: React.FC<HeaderProps> = ({
                           setShowUserMenu(false);
                           onOpenSettingsModal();
                         }}
-                        className="w-full text-right px-3 py-2 hover:bg-stone-700/80 rounded-xl flex items-center justify-between text-stone-200 hover:text-white transition-colors cursor-pointer"
+                        className="w-full text-right px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <Palette className="w-4 h-4 text-amber-400" />
+                          <Palette className="w-4 h-4 text-amber-500" />
                           <span>تخصيص ألوان وتصميم التطبيق</span>
                         </div>
-                        <span className="text-[10px] text-amber-400/80">مظهر</span>
+                        <span className="text-[10px] text-amber-500 font-semibold">مظهر</span>
                       </button>
                     )}
 
@@ -326,13 +328,13 @@ export const Header: React.FC<HeaderProps> = ({
                           setShowUserMenu(false);
                           onOpenSupervisorModal();
                         }}
-                        className="w-full text-right px-3 py-2 hover:bg-stone-700/80 rounded-xl flex items-center justify-between text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                        className="w-full text-right px-3 py-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <KeyRound className="w-4 h-4 text-amber-400" />
+                          <KeyRound className="w-4 h-4 text-amber-500" />
                           <span>إدارة صلاحيات المشرفين</span>
                         </div>
-                        <span className="text-[10px] bg-amber-950 border border-amber-700/50 text-amber-300 px-1.5 py-0.5 rounded">خاص</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold">خاص</span>
                       </button>
                     )}
                   </div>
@@ -347,9 +349,9 @@ export const Header: React.FC<HeaderProps> = ({
                           await logout();
                         }
                       }}
-                      className="w-full text-right px-3 py-2 hover:bg-rose-950/40 text-rose-300 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+                      className="w-full text-right px-3 py-2 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl flex items-center gap-2 transition-colors cursor-pointer font-medium"
                     >
-                      <LogOut className="w-4 h-4 text-rose-400" />
+                      <LogOut className="w-4 h-4 text-rose-500" />
                       <span>تسجيل الخروج</span>
                     </button>
                   </div>
@@ -363,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="settings-menu-btn"
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-              className="p-1.5 sm:p-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors cursor-pointer border ${headerPreset.btnClass}`}
               title="خيارات وحفظ البيانات"
             >
               <RotateCcw className="w-4 h-4" />
@@ -372,11 +374,11 @@ export const Header: React.FC<HeaderProps> = ({
             {showSettingsMenu && (
               <div
                 id="settings-dropdown"
-                className="absolute left-0 mt-2 w-56 bg-stone-800 border border-stone-700 rounded-2xl shadow-2xl py-2 z-50 text-xs text-stone-200 divide-y divide-stone-700/50"
+                className={`absolute left-0 mt-2 w-56 border rounded-2xl shadow-2xl py-2 z-50 text-xs divide-y divide-stone-500/20 ${headerPreset.dropdownClass}`}
               >
                 <div className="px-3 py-2">
-                  <div className="font-semibold text-stone-300">إدارة بيانات الحلقة</div>
-                  <div className="text-[10px] text-stone-400 mt-0.5">عدد الطلاب: {activeStudentsCount}</div>
+                  <div className="font-semibold">إدارة بيانات الحلقة</div>
+                  <div className="text-[10px] opacity-70 mt-0.5">عدد الطلاب: {activeStudentsCount}</div>
                 </div>
 
                 <div className="py-1">
@@ -388,9 +390,9 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowSettingsMenu(false);
                         onOpenSettingsModal();
                       }}
-                      className="w-full text-right px-3 py-1.5 hover:bg-stone-700 flex items-center gap-2 text-amber-300 hover:text-amber-200 cursor-pointer"
+                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold cursor-pointer"
                     >
-                      <Palette className="w-3.5 h-3.5 text-amber-400" />
+                      <Palette className="w-3.5 h-3.5 text-amber-500" />
                       تخصيص ألوان وتصميم التطبيق
                     </button>
                   )}
@@ -401,23 +403,23 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowSettingsMenu(false);
                         onOpenTransferModal();
                       }}
-                      className="w-full text-right px-3 py-1.5 hover:bg-stone-700 flex items-center gap-2 text-stone-200 cursor-pointer"
+                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
                     >
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500" />
                       نقل أو استيراد من حساب آخر
                     </button>
                   )}
 
                   <button
                     onClick={handleExport}
-                    className="w-full text-right px-3 py-1.5 hover:bg-stone-700 flex items-center gap-2 text-stone-200 cursor-pointer"
+                    className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <Download className="w-3.5 h-3.5 text-emerald-500" />
                     تصدير نسخة احتياطية (JSON)
                   </button>
 
-                  <label className="w-full text-right px-3 py-1.5 hover:bg-stone-700 flex items-center gap-2 text-stone-200 cursor-pointer">
-                    <Upload className="w-3.5 h-3.5 text-teal-400" />
+                  <label className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-teal-500" />
                     استيراد نسخة سابقة
                     <input
                       type="file"
@@ -436,7 +438,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowSettingsMenu(false);
                       }
                     }}
-                    className="w-full text-right px-3 py-1.5 hover:bg-red-950/40 text-rose-400 flex items-center gap-2 cursor-pointer"
+                    className="w-full text-right px-3 py-1.5 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     مسح كافة البيانات والبدء من جديد
@@ -449,15 +451,15 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Navigation Tabs */}
-      <div className="bg-stone-950/70 border-t border-stone-800/80">
+      <div className={`border-t transition-colors duration-200 ${headerPreset.subBarClass}`}>
         <div className="max-w-6xl mx-auto px-2 flex items-center justify-between sm:justify-start gap-1 sm:gap-2 overflow-x-auto py-1">
           <button
             id="tab-sessions"
             onClick={() => setActiveTab('sessions')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'sessions'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <Calendar className="w-4 h-4" />
@@ -469,8 +471,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('revision')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'revision'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <CheckSquare className="w-4 h-4" />
@@ -482,8 +484,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('students')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'students'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <Users className="w-4 h-4" />
@@ -495,8 +497,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('reports')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'reports'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -508,8 +510,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('quranIndex')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'quranIndex'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -521,11 +523,11 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('mutashabihat')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'mutashabihat'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-amber-300/80 hover:text-amber-200 hover:bg-stone-800/60'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-amber-500/90 hover:text-amber-600 dark:text-amber-300/80 dark:hover:text-amber-200 hover:bg-black/5 dark:hover:bg-white/5'
             }`}
           >
-            <Layers className="w-4 h-4 text-amber-400" />
+            <Layers className="w-4 h-4 text-amber-500" />
             <span>متشابهات القرآن</span>
           </button>
 
@@ -534,8 +536,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('guide')}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'guide'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <HelpCircle className="w-4 h-4" />

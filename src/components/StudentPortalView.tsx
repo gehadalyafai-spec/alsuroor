@@ -12,6 +12,7 @@ import {
 } from '../utils/quranLogic';
 import { exportStudentToExcel } from '../utils/exportReports';
 import { RevisionStatus, SessionGrade } from '../types/quran';
+import { useTheme } from '../context/ThemeContext';
 import { 
   BookOpen, CheckCircle2, Clock, Star, Calendar, FileText, 
   Download, Printer, Send, Award, AlertCircle, Sparkles, 
@@ -41,6 +42,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
     syncStatus
   } = useQuran();
   const { user } = useAuth();
+  const { headerPreset, colorPreset } = useTheme();
 
   const handleLogout = () => {
     logoutStudent();
@@ -233,7 +235,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 font-sans pb-16" dir="rtl">
       {/* Student Portal Header */}
-      <header className="bg-stone-900 text-white border-b border-stone-800 sticky top-0 z-30 shadow-md">
+      <header className={`border-b sticky top-0 z-30 shadow-md transition-colors duration-200 ${headerPreset.headerClass}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-2xl ${student.avatarColor || 'bg-emerald-700'} text-white font-bold flex items-center justify-center text-base shadow-inner`}>
@@ -241,13 +243,13 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-base sm:text-lg">{student.name}</h1>
-                <span className="text-[11px] bg-emerald-950 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-800 font-medium">
+                <h1 className={`font-bold text-base sm:text-lg ${headerPreset.textMainClass}`}>{student.name}</h1>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium ${headerPreset.badgeClass}`}>
                   بوابة الطالب
                 </span>
               </div>
-              <p className="text-xs text-stone-400">
-                كود الطالب: <span className="text-amber-300 font-mono font-semibold">{student.accessCode || '—'}</span> • حلقة جامع السرور
+              <p className={`text-xs ${headerPreset.textSubClass}`}>
+                كود الطالب: <span className="text-amber-500 font-mono font-semibold">{student.accessCode || '—'}</span> • حلقة جامع السرور
               </p>
             </div>
           </div>
@@ -255,27 +257,27 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsThemeModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-medium border border-stone-700 transition-colors cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${headerPreset.btnClass}`}
               title="تخصيص ألوان ومظهر التطبيق ووضع القراءة"
             >
-              <Palette className="w-3.5 h-3.5 text-amber-400" />
+              <Palette className="w-3.5 h-3.5 text-amber-500" />
               <span className="hidden sm:inline">المظهر</span>
             </button>
 
             <button
               onClick={refreshStudentData}
               disabled={isLoadingCloud}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium border border-stone-700 transition-colors cursor-pointer disabled:opacity-50"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer disabled:opacity-50 ${headerPreset.btnClass}`}
               title="تحديث البيانات فوراً من حساب المشرف"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isLoadingCloud ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-500 ${isLoadingCloud ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">مزامنة مع المشرف</span>
             </button>
 
             <button
               onClick={handleLogout}
               id="student-logout-btn"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium border border-stone-700 transition-colors cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${headerPreset.btnClass}`}
               title="الخروج أو العودة لحساب المشرف"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -285,13 +287,13 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
         </div>
 
         {/* Sub-Navigation Bar */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex overflow-x-auto gap-2 py-2 border-t border-stone-800 scrollbar-none">
+        <div className={`max-w-6xl mx-auto px-4 sm:px-6 flex overflow-x-auto gap-2 py-2 border-t scrollbar-none transition-colors duration-200 ${headerPreset.subBarClass}`}>
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'overview'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -302,8 +304,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             onClick={() => setActiveTab('daily_revision')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'daily_revision'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
@@ -320,8 +322,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             onClick={() => setActiveTab('session')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'session'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <Award className="w-4 h-4" />
@@ -332,8 +334,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             onClick={() => setActiveTab('submissions')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'submissions'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
+                ? `${colorPreset.primary} text-white shadow-xs`
+                : headerPreset.tabInactiveClass
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -344,11 +346,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             onClick={() => setActiveTab('mutashabihat')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'mutashabihat'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-amber-300/80 hover:text-amber-200 hover:bg-stone-800/60'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-amber-500/90 hover:text-amber-600 dark:text-amber-300/80 dark:hover:text-amber-200 hover:bg-black/5 dark:hover:bg-white/5'
             }`}
           >
-            <Layers className="w-4 h-4 text-amber-400" />
+            <Layers className="w-4 h-4 text-amber-500" />
             <span>متشابهات القرآن</span>
           </button>
         </div>

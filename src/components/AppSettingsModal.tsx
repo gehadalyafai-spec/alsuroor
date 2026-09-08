@@ -1,14 +1,81 @@
 import React from 'react';
-import { useTheme, ThemeColor, DesignStyle, BackgroundMode } from '../context/ThemeContext';
+import { useTheme, ThemeColor, DesignStyle, BackgroundMode, HeaderBackgroundMode, HEADER_PRESETS } from '../context/ThemeContext';
 import { 
   Palette, Layout, Moon, Sun, Check, Sparkles, BookOpen, 
-  RotateCcw, X, Sliders, CheckCircle2, Layers 
+  RotateCcw, X, Sliders, CheckCircle2, Layers, Compass, Crown
 } from 'lucide-react';
 
 interface AppSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+interface HeaderBgOption {
+  id: HeaderBackgroundMode;
+  name: string;
+  description: string;
+  badge: string;
+  bgPreview: string;
+  headerBarClass: string;
+  textColor: string;
+}
+
+const HEADER_BG_OPTIONS: HeaderBgOption[] = [
+  {
+    id: 'dark',
+    name: 'الأسود الفحمي (الافتراضي)',
+    description: 'داكن كلاسيكي عالي التباين وراحة القراءة',
+    badge: 'كلاسيكي داكن',
+    bgPreview: 'bg-stone-900 border-stone-700',
+    headerBarClass: 'bg-stone-900 border-stone-800 text-white',
+    textColor: 'text-stone-100',
+  },
+  {
+    id: 'light',
+    name: 'الأبيض الناصع (فاتح)',
+    description: 'شريط علوي ناصع وأنيق بنمط نهاري عصري',
+    badge: 'فاتح عصري',
+    bgPreview: 'bg-white border-stone-300 shadow-2xs',
+    headerBarClass: 'bg-white border-stone-200 text-stone-900 shadow-xs',
+    textColor: 'text-stone-900',
+  },
+  {
+    id: 'parchment',
+    name: 'الورقي الدافئ (مخطوطة)',
+    description: 'مستوحى من ورق المصاحف التراثية المريحة للنظر',
+    badge: 'ورق المصحف',
+    bgPreview: 'bg-[#faf4e6] border-[#dfcfb5]',
+    headerBarClass: 'bg-[#faf4e6] border-[#e2d4bd] text-[#332415]',
+    textColor: 'text-[#332415]',
+  },
+  {
+    id: 'emerald',
+    name: 'الأخضر الزمردي الملكي',
+    description: 'سمة قرآنية خضراء عميقة بطابع إسلامي وقور',
+    badge: 'إسلامي ملكي',
+    bgPreview: 'bg-[#032b21] border-emerald-800',
+    headerBarClass: 'bg-[#032b21] border-emerald-900 text-emerald-50',
+    textColor: 'text-emerald-50',
+  },
+  {
+    id: 'navy',
+    name: 'الكحلي الأزرق الوقور',
+    description: 'طابع ملكي هادئ يساعد على الصفاء الذهني والتركيز',
+    badge: 'أزرق وقور',
+    bgPreview: 'bg-[#071326] border-slate-700',
+    headerBarClass: 'bg-[#071326] border-slate-900 text-slate-100',
+    textColor: 'text-slate-100',
+  },
+  {
+    id: 'amber',
+    name: 'الذهبي العنبري المذهب',
+    description: 'طابع تراثي دافئ بلمسات مذهبات وزخارف المصاحف',
+    badge: 'مذهب دافئ',
+    bgPreview: 'bg-[#241308] border-[#4a2b15]',
+    headerBarClass: 'bg-[#241308] border-[#3d2210] text-amber-50',
+    textColor: 'text-amber-50',
+  },
+];
 
 interface ColorOption {
   id: ThemeColor;
@@ -120,7 +187,16 @@ const BG_OPTIONS: BackgroundOption[] = [
 ];
 
 export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onClose }) => {
-  const { settings, setColor, setStyle, setBackground, updateSettings, colorPreset } = useTheme();
+  const { 
+    settings, 
+    setColor, 
+    setStyle, 
+    setBackground, 
+    setHeaderBg, 
+    updateSettings, 
+    colorPreset,
+    headerPreset 
+  } = useTheme();
 
   if (!isOpen) return null;
 
@@ -129,6 +205,7 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
       color: 'emerald',
       style: 'modern',
       background: 'light',
+      headerBg: 'dark',
     });
   };
 
@@ -148,7 +225,7 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
             <div>
               <h2 className="text-base sm:text-lg font-bold">إعدادات ومظهر التطبيق</h2>
               <p className="text-xs text-stone-400">
-                تخصيص ألوان التطبيق، شكل التصميم، ووضع القراءة المريح
+                تخصيص خلفية الشريط العلوي، ألوان التطبيق، شكل التصميم، ووضع القراءة
               </p>
             </div>
           </div>
@@ -163,7 +240,63 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
         </div>
 
         <div className="p-5 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Section 1: Design Style (شكل وتصميم التطبيق) */}
+          {/* Section 1: Top Header Background (خلفية ولون الشريط العلوي) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-sm text-stone-900">خلفية الشريط العلوي (الهيدر)</h3>
+              </div>
+              <span className="text-[11px] text-stone-500 font-medium">لون الشريط الرئيسي بالأعلى</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {HEADER_BG_OPTIONS.map((hbg) => {
+                const isSelected = settings.headerBg === hbg.id;
+                return (
+                  <button
+                    key={hbg.id}
+                    type="button"
+                    onClick={() => setHeaderBg(hbg.id)}
+                    className={`p-3.5 rounded-2xl border text-right transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative overflow-hidden ${
+                      isSelected
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-md bg-stone-50/50'
+                        : 'border-stone-200 hover:border-stone-300 bg-white hover:bg-stone-50'
+                    }`}
+                  >
+                    {/* Header bar sample preview pill */}
+                    <div className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between gap-2 ${hbg.headerBarClass}`}>
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <div className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                          ج
+                        </div>
+                        <span className="text-xs font-bold truncate">جامع السرور</span>
+                      </div>
+                      <span className="text-[9px] font-semibold opacity-90 px-1.5 py-0.5 rounded bg-black/20 shrink-0">
+                        {hbg.badge}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-bold text-xs text-stone-900">{hbg.name}</span>
+                        {isSelected && (
+                          <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-stone-500 leading-relaxed">
+                        {hbg.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 2: Design Style (شكل وتصميم التطبيق) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -210,7 +343,7 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Section 2: App Color Palette (ألوان التطبيق) */}
+          {/* Section 3: App Color Palette (ألوان التطبيق) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -247,7 +380,7 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Section 3: Background & Eye Comfort (وضع القراءة والخلفية) */}
+          {/* Section 4: Background & Eye Comfort (وضع القراءة والخلفية العامة) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -289,20 +422,68 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
           </div>
 
           {/* Live Preview Box */}
-          <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200/80 space-y-2.5">
+          <div className="bg-stone-50 rounded-3xl p-4 sm:p-5 border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                معاينة حية للمظهر المختار:
+              <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                معاينة حية للمظهر والشريط العلوي المختار:
               </span>
-              <span className="text-[10px] text-stone-500">
-                يطبق فوراً على جميع الشاشات
+              <span className="text-[11px] text-stone-500">
+                يطبق فوراً في الوقت الفعلي
               </span>
             </div>
 
-            <div className="bg-white rounded-xl p-3.5 border border-stone-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            {/* Simulated App Header Preview */}
+            <div className={`rounded-2xl border overflow-hidden shadow-sm transition-all ${headerPreset.headerClass}`}>
+              <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    ج
+                  </div>
+                  <div>
+                    <div className={`font-bold text-xs font-['Amiri',serif] ${headerPreset.textMainClass}`}>
+                      جامع السرور
+                    </div>
+                    <div className={`text-[10px] ${headerPreset.textSubClass}`}>
+                      حلقة القرآن الكريم
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${headerPreset.btnClass}`}>
+                    سحابي (متصل)
+                  </span>
+                  <button
+                    type="button"
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold text-white shadow-xs ${colorPreset.primary}`}
+                  >
+                    طالب جديد
+                  </button>
+                </div>
+              </div>
+
+              {/* Sub-bar tabs preview */}
+              <div className={`px-3 py-1.5 border-t flex items-center gap-1.5 text-[10px] font-medium overflow-x-auto ${headerPreset.subBarClass}`}>
+                <span className={`px-2 py-0.5 rounded-md text-white font-bold shadow-2xs ${colorPreset.primary}`}>
+                  جلسة التسميع
+                </span>
+                <span className={`px-2 py-0.5 rounded-md ${headerPreset.tabInactiveClass}`}>
+                  الورد اليومي
+                </span>
+                <span className={`px-2 py-0.5 rounded-md ${headerPreset.tabInactiveClass}`}>
+                  سجل الطلاب
+                </span>
+                <span className={`px-2 py-0.5 rounded-md ${headerPreset.tabInactiveClass}`}>
+                  فهرس الأرباع
+                </span>
+              </div>
+            </div>
+
+            {/* Simulated Content Card */}
+            <div className="bg-white rounded-2xl p-3.5 border border-stone-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 rounded-lg ${colorPreset.primary} text-white font-bold flex items-center justify-center text-xs shadow-xs`}>
+                <div className={`w-8 h-8 rounded-xl ${colorPreset.primary} text-white font-bold flex items-center justify-center text-xs shadow-xs`}>
                   ق
                 </div>
                 <div>
@@ -317,7 +498,7 @@ export const AppSettingsModal: React.FC<AppSettingsModalProps> = ({ isOpen, onCl
                 </span>
                 <button
                   type="button"
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-xs ${colorPreset.primary}`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs ${colorPreset.primary}`}
                 >
                   اعتماد التسميع
                 </button>

@@ -23,11 +23,12 @@ import { SupervisorManagementModal } from './components/SupervisorManagementModa
 import { AiAssistantModal } from './components/AiAssistantModal';
 import { AppSettingsModal } from './components/AppSettingsModal';
 import { MutashabihatView } from './components/MutashabihatView';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp, Layers } from 'lucide-react';
 
 function AppContent() {
   const { user, isAuthorizedSupervisor, loading: loadingAuth } = useAuth();
+  const { headerPreset, colorPreset } = useTheme();
   const { 
     activeTab, 
     setActiveTab, 
@@ -196,11 +197,11 @@ function AppContent() {
       </main>
 
       {/* Bottom Navigation for Mobile Devices */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-stone-900 border-t border-stone-800 text-stone-400 py-1.5 px-2 flex justify-around items-center shadow-lg">
+      <nav className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t py-1.5 px-2 flex justify-around items-center shadow-lg transition-colors duration-200 ${headerPreset.headerClass}`}>
         <button
           onClick={() => setActiveTab('sessions')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'sessions' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'sessions' ? `${colorPreset.text} font-bold` : headerPreset.textSubClass
           }`}
         >
           <Calendar className="w-4 h-4" />
@@ -209,8 +210,8 @@ function AppContent() {
 
         <button
           onClick={() => setActiveTab('revision')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'revision' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'revision' ? `${colorPreset.text} font-bold` : headerPreset.textSubClass
           }`}
         >
           <CheckSquare className="w-4 h-4" />
@@ -219,8 +220,8 @@ function AppContent() {
 
         <button
           onClick={() => setActiveTab('students')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'students' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'students' ? `${colorPreset.text} font-bold` : headerPreset.textSubClass
           }`}
         >
           <Users className="w-4 h-4" />
@@ -229,8 +230,8 @@ function AppContent() {
 
         <button
           onClick={() => setActiveTab('mutashabihat')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'mutashabihat' ? 'text-amber-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'mutashabihat' ? 'text-amber-500 font-bold' : headerPreset.textSubClass
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -239,8 +240,8 @@ function AppContent() {
 
         <button
           onClick={() => setActiveTab('quranIndex')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'quranIndex' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'quranIndex' ? `${colorPreset.text} font-bold` : headerPreset.textSubClass
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -249,8 +250,8 @@ function AppContent() {
 
         <button
           onClick={() => setActiveTab('guide')}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'guide' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+            activeTab === 'guide' ? `${colorPreset.text} font-bold` : headerPreset.textSubClass
           }`}
         >
           <HelpCircle className="w-4 h-4" />
