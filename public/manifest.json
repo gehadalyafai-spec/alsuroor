@@ -1,0 +1,22 @@
+{
+  "short_name": "جامع السرور",
+  "name": "تطبيق جامع السرور",
+  "icons": [
+    {
+      "src": "/launchericon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/launchericon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "display": "standalone"
+}
