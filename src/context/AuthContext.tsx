@@ -58,19 +58,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Initial load of supervisor config on mount
-  useEffect(() => {
-    reloadSupervisorConfig();
-  }, [reloadSupervisorConfig]);
-
   // Check supervisor authorization on auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser?.email) {
+        // تحويل البريد القادم من الجلسة دائماً إلى حروف صغيرة
+        const cleanEmail = currentUser.email.trim().toLowerCase();
         const latestCfg = await loadSupervisorConfigFromCloud();
         setSupervisorConfig(latestCfg);
-        const authorized = isEmailAuthorizedSupervisor(currentUser.email, latestCfg);
+        const authorized = isEmailAuthorizedSupervisor(cleanEmail, latestCfg);
         setIsAuthorizedSupervisor(authorized);
       } else {
         setIsAuthorizedSupervisor(false);
