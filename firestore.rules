@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Student Registry lookup for cross-device access codes
+    match /student_registry/{document=**} {
+      allow read, write: if true;
+    }
+
+    // System configuration (supervisors list & passcodes)
+    match /system/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Central shared circle data for all supervisors and students
+    match /circles/{document=**} {
+      allow read, write: if true;
+    }
+
+    // User circle data and user-specific documents
+    match /users/{userId}/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Student submissions for daily revision and recitation sessions
+    match /submissions/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Transfers collection for importing/exporting circle data between accounts
+    match /transfers/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Test connection document
+    match /test/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

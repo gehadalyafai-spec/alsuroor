@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "CircleData": {
+      "title": "Circle Data",
+      "description": "Quran circle data including students, session records, and daily revision logs",
+      "type": "object",
+      "properties": {
+        "students": {
+          "type": "array",
+          "description": "List of active students enrolled in the circle"
+        },
+        "sessionRecords": {
+          "type": "array",
+          "description": "Recitation session history"
+        },
+        "dailyRevisionRecords": {
+          "type": "array",
+          "description": "Daily revision assignment completions"
+        },
+        "lastState": {
+          "type": "object",
+          "description": "Last active session state"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of last sync"
+        }
+      }
+    },
+    "StudentRegistry": {
+      "title": "Student Registry",
+      "description": "Student lookup by access code or number across devices",
+      "type": "object",
+      "properties": {
+        "accessCode": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "supervisorUid": { "type": "string" },
+        "supervisorEmail": { "type": "string" },
+        "currentRub": { "type": "number" },
+        "completedRubCount": { "type": "number" },
+        "phone": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["accessCode", "studentId", "supervisorUid"]
+    },
+    "SupervisorConfig": {
+      "title": "Supervisor Authorization Config",
+      "description": "Authorized supervisor email list and master passcode",
+      "type": "object",
+      "properties": {
+        "authorizedEmails": { "type": "array" },
+        "masterPasscode": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "Transfer": {
+      "title": "Account Transfer",
+      "description": "Circle data package shared between teacher accounts",
+      "type": "object",
+      "properties": {
+        "senderUid": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "senderName": { "type": "string" },
+        "targetEmail": { "type": "string" },
+        "code": { "type": "string" },
+        "studentsCount": { "type": "number" },
+        "sessionsCount": { "type": "number" },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["senderUid", "targetEmail", "code", "data"]
+    },
+    "Submission": {
+      "title": "Student Submission",
+      "description": "Student daily revision or recitation session submitted for supervisor approval",
+      "type": "object",
+      "properties": {
+        "supervisorUid": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string" },
+        "revisionData": { "type": "object" },
+        "sessionData": { "type": "object" },
+        "supervisorFeedback": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "reviewedAt": { "type": "string" }
+      },
+      "required": ["supervisorUid", "studentId", "type", "date", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/circleData/main": {
+      "schema": "CircleData",
+      "description": "Main circle data document for a user account"
+    },
+    "/student_registry/{code}": {
+      "schema": "StudentRegistry",
+      "description": "Student lookup by access code or number across devices"
+    },
+    "/system/supervisors": {
+      "schema": "SupervisorConfig",
+      "description": "System supervisor authorization configuration"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Student revision and recitation submissions pending or reviewed by supervisor"
+    },
+    "/transfers/{transferId}": {
+      "schema": "Transfer",
+      "description": "Data transfer records sent between teacher accounts"
+    }
+  }
+}

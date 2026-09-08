@@ -1,0 +1,8 @@
+{
+  "name": "جامع السرور",
+  "description": "تطبيق حلقة القرآن الكريم بجامع السرور لمتابعة تسميع الحفظ وتدوين الورد اليومي للمراجعة",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
