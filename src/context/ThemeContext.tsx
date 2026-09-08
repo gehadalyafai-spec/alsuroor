@@ -136,11 +136,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.setAttribute('data-app-theme', settings.color);
     root.setAttribute('data-app-style', settings.style);
     root.setAttribute('data-app-bg', settings.background);
+    if (document.body) {
+      document.body.setAttribute('data-app-theme', settings.color);
+      document.body.setAttribute('data-app-style', settings.style);
+      document.body.setAttribute('data-app-bg', settings.background);
+    }
 
     if (settings.background === 'dark') {
       root.classList.add('dark-mode');
+      document.body?.classList.add('dark-mode');
     } else {
       root.classList.remove('dark-mode');
+      document.body?.classList.remove('dark-mode');
     }
   }, [settings]);
 

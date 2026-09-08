@@ -1,5 +1,489 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   App Custom Theming & Design System (أنظمة ألوان وتصاميم التطبيق)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. COLOR PALETTES (ألوان التطبيق)
+   Overrides default emerald classes with user-selected theme color
+   -------------------------------------------------------------------------- */
+
+/* BLUE THEME (الياقوتي الملكي) */
+html[data-app-theme="blue"] .bg-emerald-600,
+html[data-app-theme="blue"] .bg-emerald-700,
+html[data-app-theme="blue"] .bg-emerald-800 {
+  background-color: #1d4ed8 !important; /* blue-700 */
+}
+html[data-app-theme="blue"] .hover\:bg-emerald-700:hover,
+html[data-app-theme="blue"] .hover\:bg-emerald-800:hover {
+  background-color: #1e40af !important; /* blue-800 */
+}
+html[data-app-theme="blue"] .text-emerald-600,
+html[data-app-theme="blue"] .text-emerald-700,
+html[data-app-theme="blue"] .text-emerald-800,
+html[data-app-theme="blue"] .text-emerald-900 {
+  color: #1d4ed8 !important;
+}
+html[data-app-theme="blue"] .text-emerald-100,
+html[data-app-theme="blue"] .text-emerald-200,
+html[data-app-theme="blue"] .text-emerald-300 {
+  color: #bfdbfe !important;
+}
+html[data-app-theme="blue"] .bg-emerald-50 {
+  background-color: #eff6ff !important; /* blue-50 */
+}
+html[data-app-theme="blue"] .bg-emerald-100 {
+  background-color: #dbeafe !important; /* blue-100 */
+}
+html[data-app-theme="blue"] .bg-emerald-500\/10,
+html[data-app-theme="blue"] .bg-emerald-500\/15,
+html[data-app-theme="blue"] .bg-emerald-500\/20,
+html[data-app-theme="blue"] .bg-emerald-50\/50,
+html[data-app-theme="blue"] .bg-emerald-50\/40 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+html[data-app-theme="blue"] .bg-emerald-900,
+html[data-app-theme="blue"] .bg-emerald-950 {
+  background-color: #172554 !important;
+}
+html[data-app-theme="blue"] .border-emerald-200,
+html[data-app-theme="blue"] .border-emerald-300 {
+  border-color: #bfdbfe !important;
+}
+html[data-app-theme="blue"] .border-emerald-400,
+html[data-app-theme="blue"] .border-emerald-500,
+html[data-app-theme="blue"] .border-emerald-600,
+html[data-app-theme="blue"] .border-emerald-700,
+html[data-app-theme="blue"] .border-emerald-800 {
+  border-color: #3b82f6 !important;
+}
+html[data-app-theme="blue"] .from-emerald-600,
+html[data-app-theme="blue"] .from-emerald-700,
+html[data-app-theme="blue"] .from-emerald-800 {
+  --tw-gradient-from: #1d4ed8 var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+html[data-app-theme="blue"] .to-emerald-800,
+html[data-app-theme="blue"] .to-emerald-900,
+html[data-app-theme="blue"] .to-teal-700,
+html[data-app-theme="blue"] .to-teal-800 {
+  --tw-gradient-to: #1e3a8a var(--tw-gradient-to-position) !important;
+}
+html[data-app-theme="blue"] ::selection {
+  background-color: #bfdbfe !important;
+  color: #1e3a8a !important;
+}
+
+/* AMBER / GOLD THEME (الذهبي العنبري) */
+html[data-app-theme="amber"] .bg-emerald-600,
+html[data-app-theme="amber"] .bg-emerald-700,
+html[data-app-theme="amber"] .bg-emerald-800 {
+  background-color: #d97706 !important; /* amber-600 */
+}
+html[data-app-theme="amber"] .hover\:bg-emerald-700:hover,
+html[data-app-theme="amber"] .hover\:bg-emerald-800:hover {
+  background-color: #b45309 !important; /* amber-700 */
+}
+html[data-app-theme="amber"] .text-emerald-600,
+html[data-app-theme="amber"] .text-emerald-700,
+html[data-app-theme="amber"] .text-emerald-800,
+html[data-app-theme="amber"] .text-emerald-900 {
+  color: #b45309 !important;
+}
+html[data-app-theme="amber"] .text-emerald-100,
+html[data-app-theme="amber"] .text-emerald-200,
+html[data-app-theme="amber"] .text-emerald-300 {
+  color: #fde68a !important;
+}
+html[data-app-theme="amber"] .bg-emerald-50 {
+  background-color: #fffbeb !important; /* amber-50 */
+}
+html[data-app-theme="amber"] .bg-emerald-100 {
+  background-color: #fef3c7 !important; /* amber-100 */
+}
+html[data-app-theme="amber"] .bg-emerald-500\/10,
+html[data-app-theme="amber"] .bg-emerald-500\/15,
+html[data-app-theme="amber"] .bg-emerald-500\/20,
+html[data-app-theme="amber"] .bg-emerald-50\/50,
+html[data-app-theme="amber"] .bg-emerald-50\/40 {
+  background-color: rgba(217, 119, 6, 0.12) !important;
+}
+html[data-app-theme="amber"] .bg-emerald-900,
+html[data-app-theme="amber"] .bg-emerald-950 {
+  background-color: #451a03 !important;
+}
+html[data-app-theme="amber"] .border-emerald-200,
+html[data-app-theme="amber"] .border-emerald-300 {
+  border-color: #fde68a !important;
+}
+html[data-app-theme="amber"] .border-emerald-400,
+html[data-app-theme="amber"] .border-emerald-500,
+html[data-app-theme="amber"] .border-emerald-600,
+html[data-app-theme="amber"] .border-emerald-700,
+html[data-app-theme="amber"] .border-emerald-800 {
+  border-color: #f59e0b !important;
+}
+html[data-app-theme="amber"] .from-emerald-600,
+html[data-app-theme="amber"] .from-emerald-700,
+html[data-app-theme="amber"] .from-emerald-800 {
+  --tw-gradient-from: #d97706 var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+html[data-app-theme="amber"] .to-emerald-800,
+html[data-app-theme="amber"] .to-emerald-900,
+html[data-app-theme="amber"] .to-teal-700,
+html[data-app-theme="amber"] .to-teal-800 {
+  --tw-gradient-to: #78350f var(--tw-gradient-to-position) !important;
+}
+html[data-app-theme="amber"] ::selection {
+  background-color: #fde68a !important;
+  color: #78350f !important;
+}
+
+/* TEAL THEME (الفيروزي البحري) */
+html[data-app-theme="teal"] .bg-emerald-600,
+html[data-app-theme="teal"] .bg-emerald-700,
+html[data-app-theme="teal"] .bg-emerald-800 {
+  background-color: #0f766e !important; /* teal-700 */
+}
+html[data-app-theme="teal"] .hover\:bg-emerald-700:hover,
+html[data-app-theme="teal"] .hover\:bg-emerald-800:hover {
+  background-color: #115e59 !important; /* teal-800 */
+}
+html[data-app-theme="teal"] .text-emerald-600,
+html[data-app-theme="teal"] .text-emerald-700,
+html[data-app-theme="teal"] .text-emerald-800,
+html[data-app-theme="teal"] .text-emerald-900 {
+  color: #0f766e !important;
+}
+html[data-app-theme="teal"] .text-emerald-100,
+html[data-app-theme="teal"] .text-emerald-200,
+html[data-app-theme="teal"] .text-emerald-300 {
+  color: #99f6e4 !important;
+}
+html[data-app-theme="teal"] .bg-emerald-50 {
+  background-color: #f0fdfa !important; /* teal-50 */
+}
+html[data-app-theme="teal"] .bg-emerald-100 {
+  background-color: #ccfbf1 !important; /* teal-100 */
+}
+html[data-app-theme="teal"] .bg-emerald-500\/10,
+html[data-app-theme="teal"] .bg-emerald-500\/15,
+html[data-app-theme="teal"] .bg-emerald-500\/20,
+html[data-app-theme="teal"] .bg-emerald-50\/50,
+html[data-app-theme="teal"] .bg-emerald-50\/40 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+html[data-app-theme="teal"] .bg-emerald-900,
+html[data-app-theme="teal"] .bg-emerald-950 {
+  background-color: #042f2e !important;
+}
+html[data-app-theme="teal"] .border-emerald-200,
+html[data-app-theme="teal"] .border-emerald-300 {
+  border-color: #99f6e4 !important;
+}
+html[data-app-theme="teal"] .border-emerald-400,
+html[data-app-theme="teal"] .border-emerald-500,
+html[data-app-theme="teal"] .border-emerald-600,
+html[data-app-theme="teal"] .border-emerald-700,
+html[data-app-theme="teal"] .border-emerald-800 {
+  border-color: #14b8a6 !important;
+}
+html[data-app-theme="teal"] .from-emerald-600,
+html[data-app-theme="teal"] .from-emerald-700,
+html[data-app-theme="teal"] .from-emerald-800 {
+  --tw-gradient-from: #0f766e var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+html[data-app-theme="teal"] .to-emerald-800,
+html[data-app-theme="teal"] .to-emerald-900,
+html[data-app-theme="teal"] .to-teal-700,
+html[data-app-theme="teal"] .to-teal-800 {
+  --tw-gradient-to: #134e4a var(--tw-gradient-to-position) !important;
+}
+html[data-app-theme="teal"] ::selection {
+  background-color: #99f6e4 !important;
+  color: #134e4a !important;
+}
+
+/* SLATE THEME (الفحمي الرخامي) */
+html[data-app-theme="slate"] .bg-emerald-600,
+html[data-app-theme="slate"] .bg-emerald-700,
+html[data-app-theme="slate"] .bg-emerald-800 {
+  background-color: #334155 !important; /* slate-700 */
+}
+html[data-app-theme="slate"] .hover\:bg-emerald-700:hover,
+html[data-app-theme="slate"] .hover\:bg-emerald-800:hover {
+  background-color: #1e293b !important; /* slate-800 */
+}
+html[data-app-theme="slate"] .text-emerald-600,
+html[data-app-theme="slate"] .text-emerald-700,
+html[data-app-theme="slate"] .text-emerald-800,
+html[data-app-theme="slate"] .text-emerald-900 {
+  color: #334155 !important;
+}
+html[data-app-theme="slate"] .text-emerald-100,
+html[data-app-theme="slate"] .text-emerald-200,
+html[data-app-theme="slate"] .text-emerald-300 {
+  color: #cbd5e1 !important;
+}
+html[data-app-theme="slate"] .bg-emerald-50 {
+  background-color: #f8fafc !important; /* slate-50 */
+}
+html[data-app-theme="slate"] .bg-emerald-100 {
+  background-color: #f1f5f9 !important; /* slate-100 */
+}
+html[data-app-theme="slate"] .bg-emerald-500\/10,
+html[data-app-theme="slate"] .bg-emerald-500\/15,
+html[data-app-theme="slate"] .bg-emerald-500\/20,
+html[data-app-theme="slate"] .bg-emerald-50\/50,
+html[data-app-theme="slate"] .bg-emerald-50\/40 {
+  background-color: rgba(71, 85, 105, 0.12) !important;
+}
+html[data-app-theme="slate"] .bg-emerald-900,
+html[data-app-theme="slate"] .bg-emerald-950 {
+  background-color: #0f172a !important;
+}
+html[data-app-theme="slate"] .border-emerald-200,
+html[data-app-theme="slate"] .border-emerald-300 {
+  border-color: #cbd5e1 !important;
+}
+html[data-app-theme="slate"] .border-emerald-400,
+html[data-app-theme="slate"] .border-emerald-500,
+html[data-app-theme="slate"] .border-emerald-600,
+html[data-app-theme="slate"] .border-emerald-700,
+html[data-app-theme="slate"] .border-emerald-800 {
+  border-color: #64748b !important;
+}
+html[data-app-theme="slate"] .from-emerald-600,
+html[data-app-theme="slate"] .from-emerald-700,
+html[data-app-theme="slate"] .from-emerald-800 {
+  --tw-gradient-from: #334155 var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+html[data-app-theme="slate"] .to-emerald-800,
+html[data-app-theme="slate"] .to-emerald-900,
+html[data-app-theme="slate"] .to-teal-700,
+html[data-app-theme="slate"] .to-teal-800 {
+  --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important;
+}
+html[data-app-theme="slate"] ::selection {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* ROSE THEME (الوردي العنابي) */
+html[data-app-theme="rose"] .bg-emerald-600,
+html[data-app-theme="rose"] .bg-emerald-700,
+html[data-app-theme="rose"] .bg-emerald-800 {
+  background-color: #be123c !important; /* rose-700 */
+}
+html[data-app-theme="rose"] .hover\:bg-emerald-700:hover,
+html[data-app-theme="rose"] .hover\:bg-emerald-800:hover {
+  background-color: #9f1239 !important; /* rose-800 */
+}
+html[data-app-theme="rose"] .text-emerald-600,
+html[data-app-theme="rose"] .text-emerald-700,
+html[data-app-theme="rose"] .text-emerald-800,
+html[data-app-theme="rose"] .text-emerald-900 {
+  color: #be123c !important;
+}
+html[data-app-theme="rose"] .text-emerald-100,
+html[data-app-theme="rose"] .text-emerald-200,
+html[data-app-theme="rose"] .text-emerald-300 {
+  color: #fecdd3 !important;
+}
+html[data-app-theme="rose"] .bg-emerald-50 {
+  background-color: #fff1f2 !important; /* rose-50 */
+}
+html[data-app-theme="rose"] .bg-emerald-100 {
+  background-color: #ffe4e6 !important; /* rose-100 */
+}
+html[data-app-theme="rose"] .bg-emerald-500\/10,
+html[data-app-theme="rose"] .bg-emerald-500\/15,
+html[data-app-theme="rose"] .bg-emerald-500\/20,
+html[data-app-theme="rose"] .bg-emerald-50\/50,
+html[data-app-theme="rose"] .bg-emerald-50\/40 {
+  background-color: rgba(225, 29, 72, 0.12) !important;
+}
+html[data-app-theme="rose"] .bg-emerald-900,
+html[data-app-theme="rose"] .bg-emerald-950 {
+  background-color: #4c0519 !important;
+}
+html[data-app-theme="rose"] .border-emerald-200,
+html[data-app-theme="rose"] .border-emerald-300 {
+  border-color: #fecdd3 !important;
+}
+html[data-app-theme="rose"] .border-emerald-400,
+html[data-app-theme="rose"] .border-emerald-500,
+html[data-app-theme="rose"] .border-emerald-600,
+html[data-app-theme="rose"] .border-emerald-700,
+html[data-app-theme="rose"] .border-emerald-800 {
+  border-color: #f43f5e !important;
+}
+html[data-app-theme="rose"] .from-emerald-600,
+html[data-app-theme="rose"] .from-emerald-700,
+html[data-app-theme="rose"] .from-emerald-800 {
+  --tw-gradient-from: #be123c var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+html[data-app-theme="rose"] .to-emerald-800,
+html[data-app-theme="rose"] .to-emerald-900,
+html[data-app-theme="rose"] .to-teal-700,
+html[data-app-theme="rose"] .to-teal-800 {
+  --tw-gradient-to: #881337 var(--tw-gradient-to-position) !important;
+}
+html[data-app-theme="rose"] ::selection {
+  background-color: #fecdd3 !important;
+  color: #881337 !important;
+}
+
+/* --------------------------------------------------------------------------
+   2. BACKGROUND MODES (وضع القراءة ولون الخلفية)
+   -------------------------------------------------------------------------- */
+
+/* PARCHMENT (ورقي دافئ ومريح كالمخطوطة القرآنية) */
+html[data-app-bg="parchment"] body,
+html[data-app-bg="parchment"] .min-h-screen.bg-stone-100\/70,
+html[data-app-bg="parchment"] .min-h-screen.bg-stone-100 {
+  background-color: #f7f3e8 !important;
+}
+html[data-app-bg="parchment"] .bg-white {
+  background-color: #fffefb !important;
+  border-color: #e8dfcb !important;
+}
+html[data-app-bg="parchment"] .bg-stone-50 {
+  background-color: #f3ece0 !important;
+}
+html[data-app-bg="parchment"] .bg-stone-100 {
+  background-color: #eee4d4 !important;
+}
+html[data-app-bg="parchment"] .border-stone-200,
+html[data-app-bg="parchment"] .border-stone-200\/70,
+html[data-app-bg="parchment"] .border-stone-200\/80 {
+  border-color: #e4dac7 !important;
+}
+html[data-app-bg="parchment"] .text-stone-900,
+html[data-app-bg="parchment"] .text-stone-800 {
+  color: #382c1e !important;
+}
+html[data-app-bg="parchment"] .text-stone-700,
+html[data-app-bg="parchment"] .text-stone-600 {
+  color: #5c4b37 !important;
+}
+
+/* DARK MODE (داكن مريح ومناسب للحلقات المسائية) */
+html[data-app-bg="dark"] body,
+html[data-app-bg="dark"] .min-h-screen.bg-stone-100\/70,
+html[data-app-bg="dark"] .min-h-screen.bg-stone-100 {
+  background-color: #121316 !important;
+  color: #e5e7eb !important;
+}
+html[data-app-bg="dark"] .bg-white {
+  background-color: #1c1d22 !important;
+  border-color: #2e313a !important;
+  color: #f3f4f6 !important;
+}
+html[data-app-bg="dark"] .bg-stone-50,
+html[data-app-bg="dark"] .bg-stone-100 {
+  background-color: #242630 !important;
+}
+html[data-app-bg="dark"] .bg-stone-200 {
+  background-color: #303340 !important;
+}
+html[data-app-bg="dark"] .border-stone-200,
+html[data-app-bg="dark"] .border-stone-200\/70,
+html[data-app-bg="dark"] .border-stone-200\/80,
+html[data-app-bg="dark"] .border-stone-300 {
+  border-color: #2e313a !important;
+}
+html[data-app-bg="dark"] .text-stone-900,
+html[data-app-bg="dark"] .text-stone-800 {
+  color: #f3f4f6 !important;
+}
+html[data-app-bg="dark"] .text-stone-700,
+html[data-app-bg="dark"] .text-stone-600 {
+  color: #9ca3af !important;
+}
+html[data-app-bg="dark"] .text-stone-500,
+html[data-app-bg="dark"] .text-stone-400 {
+  color: #6b7280 !important;
+}
+html[data-app-bg="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-app-bg="dark"] select,
+html[data-app-bg="dark"] textarea {
+  background-color: #23252e !important;
+  color: #f3f4f6 !important;
+  border-color: #373a46 !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. DESIGN STYLES (أنماط شكل وهيكل التصميم)
+   -------------------------------------------------------------------------- */
+
+/* CLASSIC QURANIC STYLE (التصميم القرآني التراثي) */
+html[data-app-style="classic"] {
+  font-family: 'Amiri', 'Cairo', serif !important;
+}
+html[data-app-style="classic"] h1,
+html[data-app-style="classic"] h2,
+html[data-app-style="classic"] h3,
+html[data-app-style="classic"] .font-bold {
+  font-family: 'Amiri', 'Cairo', serif !important;
+  letter-spacing: 0.02em;
+}
+html[data-app-style="classic"] .bg-white {
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  box-shadow: 0 4px 18px rgba(180, 130, 40, 0.08) !important;
+}
+html[data-app-style="classic"] .rounded-3xl {
+  border-radius: 14px !important;
+}
+html[data-app-style="classic"] .rounded-2xl {
+  border-radius: 10px !important;
+}
+
+/* COMPACT FOCUSED STYLE (التصميم المدمج المركز لكثافة وسرعة البيانات) */
+html[data-app-style="compact"] .p-6 {
+  padding: 0.875rem !important;
+}
+html[data-app-style="compact"] .p-5 {
+  padding: 0.75rem !important;
+}
+html[data-app-style="compact"] .p-4 {
+  padding: 0.625rem !important;
+}
+html[data-app-style="compact"] .py-3,
+html[data-app-style="compact"] .py-4 {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+html[data-app-style="compact"] .gap-4 {
+  gap: 0.625rem !important;
+}
+html[data-app-style="compact"] .gap-3 {
+  gap: 0.5rem !important;
+}
+html[data-app-style="compact"] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.625rem !important;
+}
+html[data-app-style="compact"] .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem !important;
+}
+html[data-app-style="compact"] .rounded-3xl {
+  border-radius: 1rem !important;
+}
+html[data-app-style="compact"] .rounded-2xl {
+  border-radius: 0.75rem !important;
+}
+
+/* MODERN CLEAN STYLE (التصميم العصري الأنيق - الافتراضي) */
+html[data-app-style="modern"] {
+  font-family: 'Cairo', sans-serif !important;
+}
+
+/* Print Styles */
 @media print {
   body {
     background: white !important;
@@ -20,3 +504,4 @@
     margin: 10mm;
   }
 }
+
