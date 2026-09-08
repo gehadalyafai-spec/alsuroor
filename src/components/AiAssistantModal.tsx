@@ -40,7 +40,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
     {
       role: 'assistant',
-      text: 'السلام عليكم ورحمة الله وبركاته! أنا مساعد الحلقة الذكي المزود بنموذج Gemini 3.8 Flash. يسعدني مساعدتك في استفسارات التجويد، تثبيت حفظ الأرباع، والمتشابهات القرآنية وإدارة الحلقة.'
+      text: 'السلام عليكم ورحمة الله وبركاته! أنا مساعد الحلقة الذكي المزود بنموذج Gemini 3.5 Flash. يسعدني مساعدتك في استفسارات التجويد، تثبيت حفظ الأرباع، والمتشابهات القرآنية وإدارة الحلقة.'
     }
   ]);
   const [chatInput, setChatInput] = useState<string>('');
@@ -160,7 +160,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                   مساعد الحلقة القرآني الذكي
                 </h3>
                 <span className="text-[10px] font-bold font-mono bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                  Gemini 3.8 Flash
+                  Gemini 3.5
                 </span>
               </div>
               <p className="text-xs text-emerald-200/80">
@@ -231,7 +231,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                     التحليل الاستراتيجي الشامل للحلقة
                   </h4>
                   <p className="text-[11px] text-emerald-800/90 mt-0.5 leading-relaxed">
-                    يقوم نموذج Gemini 3.8 Flash بقراءة إحصائيات الحلقة، ونسب الإتقان والالتزام بالورد اليومي وتقديم توصيات تنفيذية للمعلم.
+                    يقوم نموذج Gemini 3.5 Flash بقراءة إحصائيات الحلقة، ونسب الإتقان والالتزام بالورد اليومي وتقديم توصيات تنفيذية للمعلم.
                   </p>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                   {isGeneratingReport ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin text-emerald-300" />
-                      <span>جارِ التحليل المعمق بـ Gemini 3.8 Flash...</span>
+                      <span>جارِ التحليل المعمق بـ Gemini 3.5 Flash...</span>
                     </>
                   ) : (
                     <>
@@ -269,7 +269,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                   <div className="flex items-center justify-between border-b border-stone-200 pb-2 text-[11px] text-stone-500 font-semibold">
                     <span className="flex items-center gap-1.5 text-emerald-800">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      تم إعداد التقرير بنجاح بواسطة Gemini 3.8 Flash
+                      تم إعداد التقرير بنجاح بواسطة Gemini 3.5 Flash
                     </span>
                     <span>{new Date().toLocaleDateString('ar-SA')}</span>
                   </div>
@@ -352,7 +352,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                   <div className="flex items-center justify-between border-b border-stone-200 pb-2 text-[11px] text-stone-500 font-semibold">
                     <span className="text-teal-800 font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      توجيهات Gemini 3.8 Flash للطالب: {currentStudent?.name}
+                      توجيهات Gemini 3.5 Flash للطالب: {currentStudent?.name}
                     </span>
                   </div>
                   <div className="text-stone-800 text-xs sm:text-sm font-medium leading-relaxed">
@@ -393,7 +393,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                   <div className="flex justify-start">
                     <div className="bg-stone-100 text-stone-500 border border-stone-200/80 rounded-2xl px-4 py-2 text-xs flex items-center gap-2">
                       <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                      <span>Gemini 3.8 Flash يفكر ويكتب الرد...</span>
+                      <span>Gemini 3.5 Flash يفكر ويكتب الرد...</span>
                     </div>
                   </div>
                 )}
@@ -425,7 +425,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
         <div className="bg-stone-100 px-5 py-3 border-t border-stone-200/80 flex items-center justify-between text-[11px] text-stone-500">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            يعمل بنموذج <strong>Gemini 3.8 Flash</strong> عبر الخادم الآمن
+            يعمل بنموذج <strong>Gemini 3.5 Flash</strong> عبر الخادم الآمن
           </span>
           <button
             onClick={onClose}

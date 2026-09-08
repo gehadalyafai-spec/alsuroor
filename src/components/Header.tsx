@@ -35,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
     syncStatus,
     lastSyncedAt,
     isLoadingCloud,
+    hasUnsavedChanges,
     saveToCloudNow,
     pendingSubmissionsCount
   } = useQuran();
@@ -121,8 +122,10 @@ export const Header: React.FC<HeaderProps> = ({
               title={
                 syncStatus === 'saving' || manualSyncing
                   ? 'جارِ حفظ التعديلات في السحاب...'
+                  : hasUnsavedChanges
+                  ? 'توجد تعديلات جديدة (تُحفظ تلقائياً كل 60 ثانية، أو انقر هنا للحفظ الفوري الآن)'
                   : syncStatus === 'synced'
-                  ? `محفوظ سحابياً بحسابك (${lastSyncedAt ? lastSyncedAt.toLocaleTimeString('ar-SA') : 'الآن'})`
+                  ? `محفوظ سحابياً بحسابك • الحفظ المتزامن يعمل كل 60 ثانية (${lastSyncedAt ? lastSyncedAt.toLocaleTimeString('ar-SA') : 'الآن'})`
                   : syncStatus === 'error'
                   ? 'خطأ في الاتصال، انقر لإعادة المحاولة'
                   : 'متصل بالسحاب'
@@ -132,12 +135,17 @@ export const Header: React.FC<HeaderProps> = ({
               {isLoadingCloud || manualSyncing || syncStatus === 'saving' ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-                  <span className="text-emerald-300 hidden md:inline">جارِ الحفظ...</span>
+                  <span className="text-emerald-300 hidden md:inline">جارِ المزامنة...</span>
+                </>
+              ) : hasUnsavedChanges ? (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                  <span className="text-amber-300 font-bold hidden sm:inline">حفظ كل 60ث (معلق)</span>
                 </>
               ) : syncStatus === 'synced' ? (
                 <>
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                  <span className="text-emerald-400 font-bold hidden sm:inline">سحابي محفوظ</span>
+                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                  <span className="text-emerald-400 font-bold hidden sm:inline">سحابي (كل 60ث)</span>
                 </>
               ) : syncStatus === 'error' ? (
                 <>

@@ -32,7 +32,7 @@ async function startServer() {
 
   async function generateAiContent(prompt: string) {
     const ai = getAiClient();
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash'];
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest'];
     let lastError: any = null;
     for (const model of modelsToTry) {
       try {
@@ -53,7 +53,7 @@ async function startServer() {
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({ 
       status: 'ok', 
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       hasApiKey: !!process.env.GEMINI_API_KEY 
     });
   });
@@ -200,7 +200,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Quran Circle Tracker Server with Gemini 3.8 Flash running on http://0.0.0.0:${PORT}`);
+    console.log(`Quran Circle Tracker Server with Gemini 3.5 Flash running on http://0.0.0.0:${PORT}`);
   });
 }
 

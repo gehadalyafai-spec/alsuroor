@@ -1,5 +1,5 @@
 /**
- * Client service to communicate with server-side Gemini 3.8 Flash endpoints
+ * Client service to communicate with server-side Gemini 3.5 Flash endpoints
  */
 
 export interface StudentAnalysisRequest {
@@ -29,7 +29,7 @@ export async function analyzeStudentWithGemini(data: StudentAnalysisRequest): Pr
 
   const body = await res.json();
   if (!res.ok) {
-    throw new Error(body.error || 'فشل الاتصال بخدمة الذكاء الاصطناعي (Gemini 3.8 Flash)');
+    throw new Error(body.error || 'فشل الاتصال بخدمة الذكاء الاصطناعي (Gemini 3.5 Flash)');
   }
   return body;
 }
