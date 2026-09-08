@@ -65,8 +65,8 @@ export async function registerStudentsInFirestoreRegistry(
     const rawCode = s.accessCode || '';
     const normCode = normalizeStudentCode(rawCode);
 
-    // Fingerprint detects changes to student code, rub, pin, phone, or name
-    const fingerprint = `${s.id}_${normCode}_${s.currentRub || 1}_${s.completedRubCount || 0}_${s.name}_${s.pin || ''}`;
+    // Fingerprint detects changes to student code, rub, pin, phone, name, and custom wird settings
+    const fingerprint = `${s.id}_${normCode}_${s.currentRub || 1}_${s.completedRubCount || 0}_${s.name}_${s.pin || ''}_${s.customWirdType || 'auto'}_${JSON.stringify(s.customWirdJuzRange || [])}`;
     if (syncedFingerprints.has(fingerprint)) continue;
 
     const primaryKey = normCode || s.id;
@@ -83,12 +83,19 @@ export async function registerStudentsInFirestoreRegistry(
       phone: s.phone || '',
       parentPhone: s.parentPhone || '',
       pin: s.pin || '',
+      customWirdType: s.customWirdType || 'auto',
+      customWirdJuzRange: s.customWirdJuzRange || null,
+      customWirdRubs: s.customWirdRubs || null,
+      customWirdRepeat: s.customWirdRepeat || 1,
       studentData: s,
       updatedAt: serverTimestamp(),
     };
 
     try {
       await safeSetDoc(doc(db, 'student_registry', primaryKey), payload, { merge: true });
+      if (s.id && s.id !== primaryKey) {
+        await safeSetDoc(doc(db, 'student_registry', s.id), payload, { merge: true });
+      }
       syncedFingerprints.add(fingerprint);
     } catch (err) {
       if (handleFirestoreError(err)) break;
@@ -106,8 +113,8 @@ interface QuranContextType {
   dailyRevisionRecords: DailyRevisionRecord[];
   selectedDate: string;
   setSelectedDate: (date: string) => void;
-  activeTab: 'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'guide';
-  setActiveTab: (tab: 'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'guide') => void;
+  activeTab: 'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'mutashabihat' | 'guide';
+  setActiveTab: (tab: 'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'mutashabihat' | 'guide') => void;
   selectedStudentId: string | null;
   setSelectedStudentId: (id: string | null) => void;
 
@@ -334,7 +341,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return new Date().toISOString().split('T')[0];
   });
 
-  const [activeTab, setActiveTab] = useState<'sessions' | 'revision' | 'students' | 'quranIndex' | 'guide'>('sessions');
+  const [activeTab, setActiveTab] = useState<'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'mutashabihat' | 'guide'>('sessions');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   // Cloud Sync State
@@ -458,12 +465,13 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [user?.uid, activeRole]);
 
-  // Real-time synchronization for student mode from supervisor's cloud circle data
+  // Real-time synchronization for student mode from supervisor's cloud circle data and registry
   useEffect(() => {
-    if (activeRole !== 'student') return;
+    if (activeRole !== 'student' || !activeStudentId) return;
 
     let unsubPersonal: (() => void) | null = null;
     let unsubCentral: (() => void) | null = null;
+    let unsubRegistry: (() => void) | null = null;
 
     const applyCircleData = (data: any) => {
       if (!data) return;
@@ -495,6 +503,34 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
 
+      // Listen directly to the student's registry doc for immediate single-student updates (position & wird changes)
+      const curStudent = studentsRef.current.find(s => s.id === activeStudentId);
+      const regKey = curStudent?.accessCode ? normalizeStudentCode(curStudent.accessCode) : activeStudentId;
+      if (regKey) {
+        const regDocRef = doc(db, 'student_registry', regKey);
+        unsubRegistry = onSnapshot(regDocRef, (snap) => {
+          if (snap.exists()) {
+            const regData = snap.data();
+            if (regData.studentData || regData.currentRub !== undefined) {
+              setStudents(prev => prev.map(s => {
+                if (s.id !== activeStudentId && normalizeStudentCode(s.accessCode) !== regKey) return s;
+                return {
+                  ...s,
+                  ...(regData.studentData || {}),
+                  currentRub: regData.currentRub !== undefined ? regData.currentRub : s.currentRub,
+                  completedRubCount: regData.completedRubCount !== undefined ? regData.completedRubCount : s.completedRubCount,
+                  customWirdType: regData.customWirdType || s.customWirdType,
+                  customWirdJuzRange: regData.customWirdJuzRange || s.customWirdJuzRange,
+                  customWirdRubs: regData.customWirdRubs || s.customWirdRubs,
+                };
+              }));
+              setLastSyncedAt(new Date());
+              setSyncStatus('synced');
+            }
+          }
+        }, () => {});
+      }
+
       // Also listen to central shared circle
       const centralDocRef = doc(db, 'circles', 'central_main_circle');
       unsubCentral = onSnapshot(centralDocRef, (snap) => {
@@ -520,8 +556,9 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       if (unsubPersonal) unsubPersonal();
       if (unsubCentral) unsubCentral();
+      if (unsubRegistry) unsubRegistry();
     };
-  }, [activeRole, studentSupervisorUid]);
+  }, [activeRole, studentSupervisorUid, activeStudentId]);
 
   // Auto-lookup supervisor UID for student if not yet set
   useEffect(() => {
@@ -1369,8 +1406,11 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveRole('student');
   };
 
-  const updateStudent = (id: string, partial: Partial<Student>) => {
+  const updateStudent = async (id: string, partial: Partial<Student>) => {
     lastLocalWriteRef.current = Date.now();
+    let updatedStudentObj: Student | null = null;
+    let nextStudents: Student[] = [];
+
     setStudents(prev => {
       const updated = prev.map(s => {
         if (s.id !== id) return s;
@@ -1381,10 +1421,75 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (partial.currentRub !== undefined && partial.completedRubCount === undefined) {
           newStudent.completedRubCount = Math.max(0, partial.currentRub - 1);
         }
+        updatedStudentObj = newStudent;
         return newStudent;
       });
-      return ensureAllStudentsHaveUniqueCodes(updated);
+      nextStudents = ensureAllStudentsHaveUniqueCodes(updated);
+      return nextStudents;
     });
+
+    studentsRef.current = nextStudents;
+
+    // Immediately persist to local storage
+    try {
+      localStorage.setItem(STORAGE_KEY + '_students', JSON.stringify(nextStudents));
+    } catch {}
+
+    // Synchronize to Firestore immediately!
+    const targetStudent = updatedStudentObj || nextStudents.find(s => s.id === id);
+    if (targetStudent && !isQuotaExceeded()) {
+      const supervisorId = user?.uid || studentSupervisorUid || 'supervisor_default';
+      const supervisorMail = user?.email || studentSupervisorEmail || '';
+      const normCode = normalizeStudentCode(targetStudent.accessCode || '');
+
+      const singleDocPayload = {
+        accessCode: targetStudent.accessCode || normCode,
+        studentId: targetStudent.id,
+        studentName: targetStudent.name,
+        supervisorUid: supervisorId,
+        supervisorEmail: supervisorMail,
+        currentRub: targetStudent.currentRub || 1,
+        completedRubCount: targetStudent.completedRubCount || 0,
+        phone: targetStudent.phone || '',
+        parentPhone: targetStudent.parentPhone || '',
+        pin: targetStudent.pin || '',
+        customWirdType: targetStudent.customWirdType || 'auto',
+        customWirdJuzRange: targetStudent.customWirdJuzRange || null,
+        customWirdRubs: targetStudent.customWirdRubs || null,
+        customWirdRepeat: targetStudent.customWirdRepeat || 1,
+        studentData: targetStudent,
+        updatedAt: serverTimestamp(),
+      };
+
+      try {
+        if (normCode) {
+          await safeSetDoc(doc(db, 'student_registry', normCode), singleDocPayload, { merge: true });
+        }
+        await safeSetDoc(doc(db, 'student_registry', targetStudent.id), singleDocPayload, { merge: true });
+      } catch (regErr) {
+        console.warn('Single student registry immediate sync warning:', regErr);
+      }
+    }
+
+    // Persist full circle to cloud immediately if supervisor is logged in or if in student mode
+    if (user && activeRole !== 'student') {
+      await persistToCloud(nextStudents);
+    } else if (activeRole === 'student') {
+      // In student mode, update central mirror as well
+      try {
+        const centralRef = doc(db, 'circles', 'central_main_circle');
+        const centralSnap = await safeGetDoc(centralRef);
+        if (centralSnap && centralSnap.exists()) {
+          const cData = centralSnap.data();
+          if (Array.isArray(cData.students)) {
+            const merged = cData.students.map((s: any) => s.id === id ? { ...s, ...partial } : s);
+            await safeSetDoc(centralRef, { students: merged, updatedAt: serverTimestamp() }, { merge: true });
+          }
+        }
+      } catch (cErr) {
+        console.warn('Central update student sync warning:', cErr);
+      }
+    }
   };
 
   const deleteStudent = (id: string) => {

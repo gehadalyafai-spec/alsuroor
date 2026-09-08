@@ -1,415 +1,566 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   App Custom Theming & Design System (أنظمة ألوان وتصاميم التطبيق)
+   Comprehensive Theming & Design Engine - جامع السرور
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. COLOR PALETTES (ألوان التطبيق)
-   Overrides default emerald classes with user-selected theme color
+   1. COLOR PALETTES (أنظمة الألوان المتناسقة)
+   Override Tailwind CSS variables and explicit classes for each theme
    -------------------------------------------------------------------------- */
 
-/* BLUE THEME (الياقوتي الملكي) */
+/* EMERALD (الافتراضي - الزمردي النضر) */
+:root,
+html[data-app-theme="emerald"] {
+  --theme-primary: #059669;
+  --theme-primary-hover: #047857;
+  --theme-primary-active: #065f46;
+  --theme-light: #ecfdf5;
+  --theme-border: #a7f3d0;
+  --theme-accent: #10b981;
+}
+
+/* BLUE (الياقوتي الملكي) */
+html[data-app-theme="blue"] {
+  --color-emerald-50: #eff6ff !important;
+  --color-emerald-100: #dbeafe !important;
+  --color-emerald-200: #bfdbfe !important;
+  --color-emerald-300: #93c5fd !important;
+  --color-emerald-400: #60a5fa !important;
+  --color-emerald-500: #3b82f6 !important;
+  --color-emerald-600: #2563eb !important;
+  --color-emerald-700: #1d4ed8 !important;
+  --color-emerald-800: #1e40af !important;
+  --color-emerald-900: #1e3a8a !important;
+  --color-emerald-950: #172554 !important;
+
+  --color-teal-600: #2563eb !important;
+  --color-teal-700: #1d4ed8 !important;
+  --color-teal-800: #1e40af !important;
+  --color-teal-900: #1e3a8a !important;
+  --color-teal-950: #172554 !important;
+
+  --theme-primary: #2563eb;
+  --theme-primary-hover: #1d4ed8;
+  --theme-primary-active: #1e40af;
+  --theme-light: #eff6ff;
+  --theme-border: #bfdbfe;
+}
+
 html[data-app-theme="blue"] .bg-emerald-600,
 html[data-app-theme="blue"] .bg-emerald-700,
-html[data-app-theme="blue"] .bg-emerald-800 {
-  background-color: #1d4ed8 !important; /* blue-700 */
+html[data-app-theme="blue"] .bg-emerald-800,
+html[data-app-theme="blue"] button.bg-emerald-700,
+html[data-app-theme="blue"] button.bg-emerald-600 {
+  background-color: #2563eb !important;
 }
 html[data-app-theme="blue"] .hover\:bg-emerald-700:hover,
-html[data-app-theme="blue"] .hover\:bg-emerald-800:hover {
-  background-color: #1e40af !important; /* blue-800 */
-}
-html[data-app-theme="blue"] .text-emerald-600,
-html[data-app-theme="blue"] .text-emerald-700,
-html[data-app-theme="blue"] .text-emerald-800,
-html[data-app-theme="blue"] .text-emerald-900 {
-  color: #1d4ed8 !important;
-}
-html[data-app-theme="blue"] .text-emerald-100,
-html[data-app-theme="blue"] .text-emerald-200,
-html[data-app-theme="blue"] .text-emerald-300 {
-  color: #bfdbfe !important;
+html[data-app-theme="blue"] .hover\:bg-emerald-800:hover,
+html[data-app-theme="blue"] button.hover\:bg-emerald-800:hover {
+  background-color: #1d4ed8 !important;
 }
 html[data-app-theme="blue"] .bg-emerald-50 {
-  background-color: #eff6ff !important; /* blue-50 */
+  background-color: #eff6ff !important;
 }
-html[data-app-theme="blue"] .bg-emerald-100 {
-  background-color: #dbeafe !important; /* blue-100 */
-}
-html[data-app-theme="blue"] .bg-emerald-500\/10,
-html[data-app-theme="blue"] .bg-emerald-500\/15,
-html[data-app-theme="blue"] .bg-emerald-500\/20,
-html[data-app-theme="blue"] .bg-emerald-50\/50,
-html[data-app-theme="blue"] .bg-emerald-50\/40 {
-  background-color: rgba(59, 130, 246, 0.12) !important;
+html[data-app-theme="blue"] .bg-emerald-100,
+html[data-app-theme="blue"] .bg-emerald-100\/90,
+html[data-app-theme="blue"] .bg-emerald-100\/80 {
+  background-color: #dbeafe !important;
 }
 html[data-app-theme="blue"] .bg-emerald-900,
-html[data-app-theme="blue"] .bg-emerald-950 {
+html[data-app-theme="blue"] .bg-emerald-950,
+html[data-app-theme="blue"] .bg-emerald-950\/60,
+html[data-app-theme="blue"] .bg-emerald-950\/70 {
   background-color: #172554 !important;
+}
+html[data-app-theme="blue"] .text-emerald-950,
+html[data-app-theme="blue"] .text-emerald-900,
+html[data-app-theme="blue"] .text-emerald-800,
+html[data-app-theme="blue"] .text-emerald-700,
+html[data-app-theme="blue"] .text-emerald-600 {
+  color: #1d4ed8 !important;
+}
+html[data-app-theme="blue"] .text-emerald-400,
+html[data-app-theme="blue"] .text-emerald-300,
+html[data-app-theme="blue"] .text-emerald-200,
+html[data-app-theme="blue"] .text-emerald-100 {
+  color: #93c5fd !important;
 }
 html[data-app-theme="blue"] .border-emerald-200,
 html[data-app-theme="blue"] .border-emerald-300 {
   border-color: #bfdbfe !important;
 }
-html[data-app-theme="blue"] .border-emerald-400,
 html[data-app-theme="blue"] .border-emerald-500,
 html[data-app-theme="blue"] .border-emerald-600,
 html[data-app-theme="blue"] .border-emerald-700,
 html[data-app-theme="blue"] .border-emerald-800 {
   border-color: #3b82f6 !important;
 }
-html[data-app-theme="blue"] .from-emerald-600,
+html[data-app-theme="blue"] .from-emerald-900,
+html[data-app-theme="blue"] .from-emerald-800,
 html[data-app-theme="blue"] .from-emerald-700,
-html[data-app-theme="blue"] .from-emerald-800 {
-  --tw-gradient-from: #1d4ed8 var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
-}
-html[data-app-theme="blue"] .to-emerald-800,
-html[data-app-theme="blue"] .to-emerald-900,
-html[data-app-theme="blue"] .to-teal-700,
-html[data-app-theme="blue"] .to-teal-800 {
-  --tw-gradient-to: #1e3a8a var(--tw-gradient-to-position) !important;
+html[data-app-theme="blue"] .from-emerald-600 {
+  --tw-gradient-from: #1e3a8a var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #172554 var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #1e40af, var(--tw-gradient-to) !important;
 }
 html[data-app-theme="blue"] ::selection {
   background-color: #bfdbfe !important;
-  color: #1e3a8a !important;
+  color: #172554 !important;
 }
 
-/* AMBER / GOLD THEME (الذهبي العنبري) */
+/* AMBER / GOLD (الذهبي العنبري) */
+html[data-app-theme="amber"] {
+  --color-emerald-50: #fffbeb !important;
+  --color-emerald-100: #fef3c7 !important;
+  --color-emerald-200: #fde68a !important;
+  --color-emerald-300: #fcd34d !important;
+  --color-emerald-400: #fbbf24 !important;
+  --color-emerald-500: #f59e0b !important;
+  --color-emerald-600: #d97706 !important;
+  --color-emerald-700: #b45309 !important;
+  --color-emerald-800: #92400e !important;
+  --color-emerald-900: #78350f !important;
+  --color-emerald-950: #451a03 !important;
+
+  --color-teal-600: #d97706 !important;
+  --color-teal-700: #b45309 !important;
+  --color-teal-800: #92400e !important;
+  --color-teal-900: #78350f !important;
+  --color-teal-950: #451a03 !important;
+
+  --theme-primary: #d97706;
+  --theme-primary-hover: #b45309;
+  --theme-primary-active: #92400e;
+  --theme-light: #fffbeb;
+  --theme-border: #fde68a;
+}
+
 html[data-app-theme="amber"] .bg-emerald-600,
 html[data-app-theme="amber"] .bg-emerald-700,
-html[data-app-theme="amber"] .bg-emerald-800 {
-  background-color: #d97706 !important; /* amber-600 */
+html[data-app-theme="amber"] .bg-emerald-800,
+html[data-app-theme="amber"] button.bg-emerald-700,
+html[data-app-theme="amber"] button.bg-emerald-600 {
+  background-color: #d97706 !important;
 }
 html[data-app-theme="amber"] .hover\:bg-emerald-700:hover,
-html[data-app-theme="amber"] .hover\:bg-emerald-800:hover {
-  background-color: #b45309 !important; /* amber-700 */
-}
-html[data-app-theme="amber"] .text-emerald-600,
-html[data-app-theme="amber"] .text-emerald-700,
-html[data-app-theme="amber"] .text-emerald-800,
-html[data-app-theme="amber"] .text-emerald-900 {
-  color: #b45309 !important;
-}
-html[data-app-theme="amber"] .text-emerald-100,
-html[data-app-theme="amber"] .text-emerald-200,
-html[data-app-theme="amber"] .text-emerald-300 {
-  color: #fde68a !important;
+html[data-app-theme="amber"] .hover\:bg-emerald-800:hover,
+html[data-app-theme="amber"] button.hover\:bg-emerald-800:hover {
+  background-color: #b45309 !important;
 }
 html[data-app-theme="amber"] .bg-emerald-50 {
-  background-color: #fffbeb !important; /* amber-50 */
+  background-color: #fffbeb !important;
 }
-html[data-app-theme="amber"] .bg-emerald-100 {
-  background-color: #fef3c7 !important; /* amber-100 */
-}
-html[data-app-theme="amber"] .bg-emerald-500\/10,
-html[data-app-theme="amber"] .bg-emerald-500\/15,
-html[data-app-theme="amber"] .bg-emerald-500\/20,
-html[data-app-theme="amber"] .bg-emerald-50\/50,
-html[data-app-theme="amber"] .bg-emerald-50\/40 {
-  background-color: rgba(217, 119, 6, 0.12) !important;
+html[data-app-theme="amber"] .bg-emerald-100,
+html[data-app-theme="amber"] .bg-emerald-100\/90,
+html[data-app-theme="amber"] .bg-emerald-100\/80 {
+  background-color: #fef3c7 !important;
 }
 html[data-app-theme="amber"] .bg-emerald-900,
-html[data-app-theme="amber"] .bg-emerald-950 {
+html[data-app-theme="amber"] .bg-emerald-950,
+html[data-app-theme="amber"] .bg-emerald-950\/60,
+html[data-app-theme="amber"] .bg-emerald-950\/70 {
   background-color: #451a03 !important;
+}
+html[data-app-theme="amber"] .text-emerald-950,
+html[data-app-theme="amber"] .text-emerald-900,
+html[data-app-theme="amber"] .text-emerald-800,
+html[data-app-theme="amber"] .text-emerald-700,
+html[data-app-theme="amber"] .text-emerald-600 {
+  color: #b45309 !important;
+}
+html[data-app-theme="amber"] .text-emerald-400,
+html[data-app-theme="amber"] .text-emerald-300,
+html[data-app-theme="amber"] .text-emerald-200,
+html[data-app-theme="amber"] .text-emerald-100 {
+  color: #fde68a !important;
 }
 html[data-app-theme="amber"] .border-emerald-200,
 html[data-app-theme="amber"] .border-emerald-300 {
   border-color: #fde68a !important;
 }
-html[data-app-theme="amber"] .border-emerald-400,
 html[data-app-theme="amber"] .border-emerald-500,
 html[data-app-theme="amber"] .border-emerald-600,
 html[data-app-theme="amber"] .border-emerald-700,
 html[data-app-theme="amber"] .border-emerald-800 {
   border-color: #f59e0b !important;
 }
-html[data-app-theme="amber"] .from-emerald-600,
+html[data-app-theme="amber"] .from-emerald-900,
+html[data-app-theme="amber"] .from-emerald-800,
 html[data-app-theme="amber"] .from-emerald-700,
-html[data-app-theme="amber"] .from-emerald-800 {
-  --tw-gradient-from: #d97706 var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
-}
-html[data-app-theme="amber"] .to-emerald-800,
-html[data-app-theme="amber"] .to-emerald-900,
-html[data-app-theme="amber"] .to-teal-700,
-html[data-app-theme="amber"] .to-teal-800 {
-  --tw-gradient-to: #78350f var(--tw-gradient-to-position) !important;
+html[data-app-theme="amber"] .from-emerald-600 {
+  --tw-gradient-from: #78350f var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #451a03 var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #92400e, var(--tw-gradient-to) !important;
 }
 html[data-app-theme="amber"] ::selection {
   background-color: #fde68a !important;
-  color: #78350f !important;
+  color: #451a03 !important;
 }
 
-/* TEAL THEME (الفيروزي البحري) */
+/* TEAL (الفيروزي البحري) */
+html[data-app-theme="teal"] {
+  --color-emerald-50: #f0fdfa !important;
+  --color-emerald-100: #ccfbf1 !important;
+  --color-emerald-200: #99f6e4 !important;
+  --color-emerald-300: #5eead4 !important;
+  --color-emerald-400: #2dd4bf !important;
+  --color-emerald-500: #14b8a6 !important;
+  --color-emerald-600: #0d9488 !important;
+  --color-emerald-700: #0f766e !important;
+  --color-emerald-800: #115e59 !important;
+  --color-emerald-900: #134e4a !important;
+  --color-emerald-950: #042f2e !important;
+
+  --theme-primary: #0d9488;
+  --theme-primary-hover: #0f766e;
+  --theme-primary-active: #115e59;
+  --theme-light: #f0fdfa;
+  --theme-border: #99f6e4;
+}
+
 html[data-app-theme="teal"] .bg-emerald-600,
 html[data-app-theme="teal"] .bg-emerald-700,
-html[data-app-theme="teal"] .bg-emerald-800 {
-  background-color: #0f766e !important; /* teal-700 */
+html[data-app-theme="teal"] .bg-emerald-800,
+html[data-app-theme="teal"] button.bg-emerald-700,
+html[data-app-theme="teal"] button.bg-emerald-600 {
+  background-color: #0d9488 !important;
 }
 html[data-app-theme="teal"] .hover\:bg-emerald-700:hover,
-html[data-app-theme="teal"] .hover\:bg-emerald-800:hover {
-  background-color: #115e59 !important; /* teal-800 */
-}
-html[data-app-theme="teal"] .text-emerald-600,
-html[data-app-theme="teal"] .text-emerald-700,
-html[data-app-theme="teal"] .text-emerald-800,
-html[data-app-theme="teal"] .text-emerald-900 {
-  color: #0f766e !important;
-}
-html[data-app-theme="teal"] .text-emerald-100,
-html[data-app-theme="teal"] .text-emerald-200,
-html[data-app-theme="teal"] .text-emerald-300 {
-  color: #99f6e4 !important;
+html[data-app-theme="teal"] .hover\:bg-emerald-800:hover,
+html[data-app-theme="teal"] button.hover\:bg-emerald-800:hover {
+  background-color: #0f766e !important;
 }
 html[data-app-theme="teal"] .bg-emerald-50 {
-  background-color: #f0fdfa !important; /* teal-50 */
+  background-color: #f0fdfa !important;
 }
-html[data-app-theme="teal"] .bg-emerald-100 {
-  background-color: #ccfbf1 !important; /* teal-100 */
-}
-html[data-app-theme="teal"] .bg-emerald-500\/10,
-html[data-app-theme="teal"] .bg-emerald-500\/15,
-html[data-app-theme="teal"] .bg-emerald-500\/20,
-html[data-app-theme="teal"] .bg-emerald-50\/50,
-html[data-app-theme="teal"] .bg-emerald-50\/40 {
-  background-color: rgba(13, 148, 136, 0.12) !important;
+html[data-app-theme="teal"] .bg-emerald-100,
+html[data-app-theme="teal"] .bg-emerald-100\/90,
+html[data-app-theme="teal"] .bg-emerald-100\/80 {
+  background-color: #ccfbf1 !important;
 }
 html[data-app-theme="teal"] .bg-emerald-900,
-html[data-app-theme="teal"] .bg-emerald-950 {
+html[data-app-theme="teal"] .bg-emerald-950,
+html[data-app-theme="teal"] .bg-emerald-950\/60,
+html[data-app-theme="teal"] .bg-emerald-950\/70 {
   background-color: #042f2e !important;
+}
+html[data-app-theme="teal"] .text-emerald-950,
+html[data-app-theme="teal"] .text-emerald-900,
+html[data-app-theme="teal"] .text-emerald-800,
+html[data-app-theme="teal"] .text-emerald-700,
+html[data-app-theme="teal"] .text-emerald-600 {
+  color: #0f766e !important;
+}
+html[data-app-theme="teal"] .text-emerald-400,
+html[data-app-theme="teal"] .text-emerald-300,
+html[data-app-theme="teal"] .text-emerald-200,
+html[data-app-theme="teal"] .text-emerald-100 {
+  color: #5eead4 !important;
 }
 html[data-app-theme="teal"] .border-emerald-200,
 html[data-app-theme="teal"] .border-emerald-300 {
   border-color: #99f6e4 !important;
 }
-html[data-app-theme="teal"] .border-emerald-400,
 html[data-app-theme="teal"] .border-emerald-500,
 html[data-app-theme="teal"] .border-emerald-600,
 html[data-app-theme="teal"] .border-emerald-700,
 html[data-app-theme="teal"] .border-emerald-800 {
   border-color: #14b8a6 !important;
 }
-html[data-app-theme="teal"] .from-emerald-600,
+html[data-app-theme="teal"] .from-emerald-900,
+html[data-app-theme="teal"] .from-emerald-800,
 html[data-app-theme="teal"] .from-emerald-700,
-html[data-app-theme="teal"] .from-emerald-800 {
-  --tw-gradient-from: #0f766e var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
-}
-html[data-app-theme="teal"] .to-emerald-800,
-html[data-app-theme="teal"] .to-emerald-900,
-html[data-app-theme="teal"] .to-teal-700,
-html[data-app-theme="teal"] .to-teal-800 {
-  --tw-gradient-to: #134e4a var(--tw-gradient-to-position) !important;
+html[data-app-theme="teal"] .from-emerald-600 {
+  --tw-gradient-from: #134e4a var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #042f2e var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #0f766e, var(--tw-gradient-to) !important;
 }
 html[data-app-theme="teal"] ::selection {
   background-color: #99f6e4 !important;
-  color: #134e4a !important;
+  color: #042f2e !important;
 }
 
-/* SLATE THEME (الفحمي الرخامي) */
+/* SLATE / CHARCOAL (الفحمي الرخامي) */
+html[data-app-theme="slate"] {
+  --color-emerald-50: #f8fafc !important;
+  --color-emerald-100: #f1f5f9 !important;
+  --color-emerald-200: #e2e8f0 !important;
+  --color-emerald-300: #cbd5e1 !important;
+  --color-emerald-400: #94a3b8 !important;
+  --color-emerald-500: #64748b !important;
+  --color-emerald-600: #475569 !important;
+  --color-emerald-700: #334155 !important;
+  --color-emerald-800: #1e293b !important;
+  --color-emerald-900: #0f172a !important;
+  --color-emerald-950: #020617 !important;
+
+  --color-teal-600: #475569 !important;
+  --color-teal-700: #334155 !important;
+  --color-teal-800: #1e293b !important;
+  --color-teal-900: #0f172a !important;
+  --color-teal-950: #020617 !important;
+
+  --theme-primary: #334155;
+  --theme-primary-hover: #1e293b;
+  --theme-primary-active: #0f172a;
+  --theme-light: #f8fafc;
+  --theme-border: #cbd5e1;
+}
+
 html[data-app-theme="slate"] .bg-emerald-600,
 html[data-app-theme="slate"] .bg-emerald-700,
-html[data-app-theme="slate"] .bg-emerald-800 {
-  background-color: #334155 !important; /* slate-700 */
+html[data-app-theme="slate"] .bg-emerald-800,
+html[data-app-theme="slate"] button.bg-emerald-700,
+html[data-app-theme="slate"] button.bg-emerald-600 {
+  background-color: #334155 !important;
 }
 html[data-app-theme="slate"] .hover\:bg-emerald-700:hover,
-html[data-app-theme="slate"] .hover\:bg-emerald-800:hover {
-  background-color: #1e293b !important; /* slate-800 */
-}
-html[data-app-theme="slate"] .text-emerald-600,
-html[data-app-theme="slate"] .text-emerald-700,
-html[data-app-theme="slate"] .text-emerald-800,
-html[data-app-theme="slate"] .text-emerald-900 {
-  color: #334155 !important;
-}
-html[data-app-theme="slate"] .text-emerald-100,
-html[data-app-theme="slate"] .text-emerald-200,
-html[data-app-theme="slate"] .text-emerald-300 {
-  color: #cbd5e1 !important;
+html[data-app-theme="slate"] .hover\:bg-emerald-800:hover,
+html[data-app-theme="slate"] button.hover\:bg-emerald-800:hover {
+  background-color: #1e293b !important;
 }
 html[data-app-theme="slate"] .bg-emerald-50 {
-  background-color: #f8fafc !important; /* slate-50 */
+  background-color: #f8fafc !important;
 }
-html[data-app-theme="slate"] .bg-emerald-100 {
-  background-color: #f1f5f9 !important; /* slate-100 */
-}
-html[data-app-theme="slate"] .bg-emerald-500\/10,
-html[data-app-theme="slate"] .bg-emerald-500\/15,
-html[data-app-theme="slate"] .bg-emerald-500\/20,
-html[data-app-theme="slate"] .bg-emerald-50\/50,
-html[data-app-theme="slate"] .bg-emerald-50\/40 {
-  background-color: rgba(71, 85, 105, 0.12) !important;
+html[data-app-theme="slate"] .bg-emerald-100,
+html[data-app-theme="slate"] .bg-emerald-100\/90,
+html[data-app-theme="slate"] .bg-emerald-100\/80 {
+  background-color: #f1f5f9 !important;
 }
 html[data-app-theme="slate"] .bg-emerald-900,
-html[data-app-theme="slate"] .bg-emerald-950 {
-  background-color: #0f172a !important;
+html[data-app-theme="slate"] .bg-emerald-950,
+html[data-app-theme="slate"] .bg-emerald-950\/60,
+html[data-app-theme="slate"] .bg-emerald-950\/70 {
+  background-color: #020617 !important;
+}
+html[data-app-theme="slate"] .text-emerald-950,
+html[data-app-theme="slate"] .text-emerald-900,
+html[data-app-theme="slate"] .text-emerald-800,
+html[data-app-theme="slate"] .text-emerald-700,
+html[data-app-theme="slate"] .text-emerald-600 {
+  color: #334155 !important;
+}
+html[data-app-theme="slate"] .text-emerald-400,
+html[data-app-theme="slate"] .text-emerald-300,
+html[data-app-theme="slate"] .text-emerald-200,
+html[data-app-theme="slate"] .text-emerald-100 {
+  color: #94a3b8 !important;
 }
 html[data-app-theme="slate"] .border-emerald-200,
 html[data-app-theme="slate"] .border-emerald-300 {
   border-color: #cbd5e1 !important;
 }
-html[data-app-theme="slate"] .border-emerald-400,
 html[data-app-theme="slate"] .border-emerald-500,
 html[data-app-theme="slate"] .border-emerald-600,
 html[data-app-theme="slate"] .border-emerald-700,
 html[data-app-theme="slate"] .border-emerald-800 {
   border-color: #64748b !important;
 }
-html[data-app-theme="slate"] .from-emerald-600,
+html[data-app-theme="slate"] .from-emerald-900,
+html[data-app-theme="slate"] .from-emerald-800,
 html[data-app-theme="slate"] .from-emerald-700,
-html[data-app-theme="slate"] .from-emerald-800 {
-  --tw-gradient-from: #334155 var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
-}
-html[data-app-theme="slate"] .to-emerald-800,
-html[data-app-theme="slate"] .to-emerald-900,
-html[data-app-theme="slate"] .to-teal-700,
-html[data-app-theme="slate"] .to-teal-800 {
-  --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important;
+html[data-app-theme="slate"] .from-emerald-600 {
+  --tw-gradient-from: #0f172a var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #020617 var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #1e293b, var(--tw-gradient-to) !important;
 }
 html[data-app-theme="slate"] ::selection {
   background-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  color: #020617 !important;
 }
 
-/* ROSE THEME (الوردي العنابي) */
+/* ROSE / BURGUNDY (الوردي العنابي) */
+html[data-app-theme="rose"] {
+  --color-emerald-50: #fff1f2 !important;
+  --color-emerald-100: #ffe4e6 !important;
+  --color-emerald-200: #fecdd3 !important;
+  --color-emerald-300: #fda4af !important;
+  --color-emerald-400: #fb7185 !important;
+  --color-emerald-500: #f43f5e !important;
+  --color-emerald-600: #e11d48 !important;
+  --color-emerald-700: #be123c !important;
+  --color-emerald-800: #9f1239 !important;
+  --color-emerald-900: #881337 !important;
+  --color-emerald-950: #4c0519 !important;
+
+  --color-teal-600: #e11d48 !important;
+  --color-teal-700: #be123c !important;
+  --color-teal-800: #9f1239 !important;
+  --color-teal-900: #881337 !important;
+  --color-teal-950: #4c0519 !important;
+
+  --theme-primary: #be123c;
+  --theme-primary-hover: #9f1239;
+  --theme-primary-active: #881337;
+  --theme-light: #fff1f2;
+  --theme-border: #fecdd3;
+}
+
 html[data-app-theme="rose"] .bg-emerald-600,
 html[data-app-theme="rose"] .bg-emerald-700,
-html[data-app-theme="rose"] .bg-emerald-800 {
-  background-color: #be123c !important; /* rose-700 */
+html[data-app-theme="rose"] .bg-emerald-800,
+html[data-app-theme="rose"] button.bg-emerald-700,
+html[data-app-theme="rose"] button.bg-emerald-600 {
+  background-color: #be123c !important;
 }
 html[data-app-theme="rose"] .hover\:bg-emerald-700:hover,
-html[data-app-theme="rose"] .hover\:bg-emerald-800:hover {
-  background-color: #9f1239 !important; /* rose-800 */
-}
-html[data-app-theme="rose"] .text-emerald-600,
-html[data-app-theme="rose"] .text-emerald-700,
-html[data-app-theme="rose"] .text-emerald-800,
-html[data-app-theme="rose"] .text-emerald-900 {
-  color: #be123c !important;
-}
-html[data-app-theme="rose"] .text-emerald-100,
-html[data-app-theme="rose"] .text-emerald-200,
-html[data-app-theme="rose"] .text-emerald-300 {
-  color: #fecdd3 !important;
+html[data-app-theme="rose"] .hover\:bg-emerald-800:hover,
+html[data-app-theme="rose"] button.hover\:bg-emerald-800:hover {
+  background-color: #9f1239 !important;
 }
 html[data-app-theme="rose"] .bg-emerald-50 {
-  background-color: #fff1f2 !important; /* rose-50 */
+  background-color: #fff1f2 !important;
 }
-html[data-app-theme="rose"] .bg-emerald-100 {
-  background-color: #ffe4e6 !important; /* rose-100 */
-}
-html[data-app-theme="rose"] .bg-emerald-500\/10,
-html[data-app-theme="rose"] .bg-emerald-500\/15,
-html[data-app-theme="rose"] .bg-emerald-500\/20,
-html[data-app-theme="rose"] .bg-emerald-50\/50,
-html[data-app-theme="rose"] .bg-emerald-50\/40 {
-  background-color: rgba(225, 29, 72, 0.12) !important;
+html[data-app-theme="rose"] .bg-emerald-100,
+html[data-app-theme="rose"] .bg-emerald-100\/90,
+html[data-app-theme="rose"] .bg-emerald-100\/80 {
+  background-color: #ffe4e6 !important;
 }
 html[data-app-theme="rose"] .bg-emerald-900,
-html[data-app-theme="rose"] .bg-emerald-950 {
+html[data-app-theme="rose"] .bg-emerald-950,
+html[data-app-theme="rose"] .bg-emerald-950\/60,
+html[data-app-theme="rose"] .bg-emerald-950\/70 {
   background-color: #4c0519 !important;
+}
+html[data-app-theme="rose"] .text-emerald-950,
+html[data-app-theme="rose"] .text-emerald-900,
+html[data-app-theme="rose"] .text-emerald-800,
+html[data-app-theme="rose"] .text-emerald-700,
+html[data-app-theme="rose"] .text-emerald-600 {
+  color: #be123c !important;
+}
+html[data-app-theme="rose"] .text-emerald-400,
+html[data-app-theme="rose"] .text-emerald-300,
+html[data-app-theme="rose"] .text-emerald-200,
+html[data-app-theme="rose"] .text-emerald-100 {
+  color: #fda4af !important;
 }
 html[data-app-theme="rose"] .border-emerald-200,
 html[data-app-theme="rose"] .border-emerald-300 {
   border-color: #fecdd3 !important;
 }
-html[data-app-theme="rose"] .border-emerald-400,
 html[data-app-theme="rose"] .border-emerald-500,
 html[data-app-theme="rose"] .border-emerald-600,
 html[data-app-theme="rose"] .border-emerald-700,
 html[data-app-theme="rose"] .border-emerald-800 {
   border-color: #f43f5e !important;
 }
-html[data-app-theme="rose"] .from-emerald-600,
+html[data-app-theme="rose"] .from-emerald-900,
+html[data-app-theme="rose"] .from-emerald-800,
 html[data-app-theme="rose"] .from-emerald-700,
-html[data-app-theme="rose"] .from-emerald-800 {
-  --tw-gradient-from: #be123c var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
-}
-html[data-app-theme="rose"] .to-emerald-800,
-html[data-app-theme="rose"] .to-emerald-900,
-html[data-app-theme="rose"] .to-teal-700,
-html[data-app-theme="rose"] .to-teal-800 {
-  --tw-gradient-to: #881337 var(--tw-gradient-to-position) !important;
+html[data-app-theme="rose"] .from-emerald-600 {
+  --tw-gradient-from: #881337 var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #4c0519 var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #9f1239, var(--tw-gradient-to) !important;
 }
 html[data-app-theme="rose"] ::selection {
   background-color: #fecdd3 !important;
-  color: #881337 !important;
+  color: #4c0519 !important;
 }
+
 
 /* --------------------------------------------------------------------------
-   2. BACKGROUND MODES (وضع القراءة ولون الخلفية)
+   2. BACKGROUND READING MODES (أوضاع القراءة المريحة)
    -------------------------------------------------------------------------- */
 
-/* PARCHMENT (ورقي دافئ ومريح كالمخطوطة القرآنية) */
-html[data-app-bg="parchment"] body,
-html[data-app-bg="parchment"] .min-h-screen.bg-stone-100\/70,
-html[data-app-bg="parchment"] .min-h-screen.bg-stone-100 {
-  background-color: #f7f3e8 !important;
-}
-html[data-app-bg="parchment"] .bg-white {
-  background-color: #fffefb !important;
-  border-color: #e8dfcb !important;
-}
-html[data-app-bg="parchment"] .bg-stone-50 {
-  background-color: #f3ece0 !important;
-}
-html[data-app-bg="parchment"] .bg-stone-100 {
-  background-color: #eee4d4 !important;
-}
-html[data-app-bg="parchment"] .border-stone-200,
-html[data-app-bg="parchment"] .border-stone-200\/70,
-html[data-app-bg="parchment"] .border-stone-200\/80 {
-  border-color: #e4dac7 !important;
-}
-html[data-app-bg="parchment"] .text-stone-900,
-html[data-app-bg="parchment"] .text-stone-800 {
-  color: #382c1e !important;
-}
-html[data-app-bg="parchment"] .text-stone-700,
-html[data-app-bg="parchment"] .text-stone-600 {
-  color: #5c4b37 !important;
+/* PARCHMENT (ورقي دافئ كمخطوطة المصحف الشريف) */
+html[data-app-bg="parchment"],
+html[data-app-bg="parchment"] body {
+  background-color: #faf5ea !important;
+  color: #3b2e1e !important;
 }
 
-/* DARK MODE (داكن مريح ومناسب للحلقات المسائية) */
-html[data-app-bg="dark"] body,
-html[data-app-bg="dark"] .min-h-screen.bg-stone-100\/70,
-html[data-app-bg="dark"] .min-h-screen.bg-stone-100 {
+html[data-app-bg="parchment"] .min-h-screen.bg-stone-100\/70,
+html[data-app-bg="parchment"] .min-h-screen.bg-stone-100,
+html[data-app-bg="parchment"] .min-h-screen.bg-stone-50 {
+  background-color: #faf5ea !important;
+}
+
+html[data-app-bg="parchment"] .bg-white {
+  background-color: #fffdf9 !important;
+  border-color: #e6dcce !important;
+}
+
+html[data-app-bg="parchment"] .bg-stone-50 {
+  background-color: #f3ebdc !important;
+}
+
+html[data-app-bg="parchment"] .bg-stone-100 {
+  background-color: #ece2cf !important;
+}
+
+html[data-app-bg="parchment"] .border-stone-200,
+html[data-app-bg="parchment"] .border-stone-200\/70,
+html[data-app-bg="parchment"] .border-stone-200\/80,
+html[data-app-bg="parchment"] .border-stone-300 {
+  border-color: #e2d7c3 !important;
+}
+
+html[data-app-bg="parchment"] .text-stone-900,
+html[data-app-bg="parchment"] .text-stone-800 {
+  color: #36291a !important;
+}
+
+html[data-app-bg="parchment"] .text-stone-700,
+html[data-app-bg="parchment"] .text-stone-600 {
+  color: #554430 !important;
+}
+
+/* DARK MODE (داكن مريح للحلقات المسائية) */
+html[data-app-bg="dark"],
+html[data-app-bg="dark"] body {
   background-color: #121316 !important;
   color: #e5e7eb !important;
 }
+
+html[data-app-bg="dark"] .min-h-screen.bg-stone-100\/70,
+html[data-app-bg="dark"] .min-h-screen.bg-stone-100,
+html[data-app-bg="dark"] .min-h-screen.bg-stone-50 {
+  background-color: #121316 !important;
+}
+
 html[data-app-bg="dark"] .bg-white {
-  background-color: #1c1d22 !important;
-  border-color: #2e313a !important;
+  background-color: #1b1c22 !important;
+  border-color: #2c2e38 !important;
   color: #f3f4f6 !important;
 }
-html[data-app-bg="dark"] .bg-stone-50,
+
+html[data-app-bg="dark"] .bg-stone-50 {
+  background-color: #23252e !important;
+}
+
 html[data-app-bg="dark"] .bg-stone-100 {
-  background-color: #242630 !important;
+  background-color: #282b35 !important;
 }
+
 html[data-app-bg="dark"] .bg-stone-200 {
-  background-color: #303340 !important;
+  background-color: #323542 !important;
 }
+
+html[data-app-bg="dark"] .border-stone-100,
 html[data-app-bg="dark"] .border-stone-200,
 html[data-app-bg="dark"] .border-stone-200\/70,
 html[data-app-bg="dark"] .border-stone-200\/80,
 html[data-app-bg="dark"] .border-stone-300 {
-  border-color: #2e313a !important;
+  border-color: #2c2e38 !important;
 }
+
 html[data-app-bg="dark"] .text-stone-900,
 html[data-app-bg="dark"] .text-stone-800 {
   color: #f3f4f6 !important;
 }
+
 html[data-app-bg="dark"] .text-stone-700,
 html[data-app-bg="dark"] .text-stone-600 {
   color: #9ca3af !important;
 }
+
 html[data-app-bg="dark"] .text-stone-500,
 html[data-app-bg="dark"] .text-stone-400 {
   color: #6b7280 !important;
 }
+
 html[data-app-bg="dark"] input:not([type="checkbox"]):not([type="radio"]),
 html[data-app-bg="dark"] select,
 html[data-app-bg="dark"] textarea {
@@ -418,64 +569,84 @@ html[data-app-bg="dark"] textarea {
   border-color: #373a46 !important;
 }
 
+
 /* --------------------------------------------------------------------------
-   3. DESIGN STYLES (أنماط شكل وهيكل التصميم)
+   3. DESIGN STYLES (أنماط التصميم والهيكل)
    -------------------------------------------------------------------------- */
 
 /* CLASSIC QURANIC STYLE (التصميم القرآني التراثي) */
-html[data-app-style="classic"] {
-  font-family: 'Amiri', 'Cairo', serif !important;
+html[data-app-style="classic"],
+html[data-app-style="classic"] body {
+  font-family: 'Amiri', 'Scheherazade New', serif !important;
+  letter-spacing: 0.01em;
 }
+
 html[data-app-style="classic"] h1,
 html[data-app-style="classic"] h2,
 html[data-app-style="classic"] h3,
+html[data-app-style="classic"] h4,
 html[data-app-style="classic"] .font-bold {
-  font-family: 'Amiri', 'Cairo', serif !important;
-  letter-spacing: 0.02em;
-}
-html[data-app-style="classic"] .bg-white {
-  border-color: rgba(212, 175, 55, 0.45) !important;
-  box-shadow: 0 4px 18px rgba(180, 130, 40, 0.08) !important;
-}
-html[data-app-style="classic"] .rounded-3xl {
-  border-radius: 14px !important;
-}
-html[data-app-style="classic"] .rounded-2xl {
-  border-radius: 10px !important;
+  font-family: 'Amiri', serif !important;
+  font-weight: 700;
 }
 
-/* COMPACT FOCUSED STYLE (التصميم المدمج المركز لكثافة وسرعة البيانات) */
-html[data-app-style="compact"] .p-6 {
+html[data-app-style="classic"] .bg-white {
+  border: 1px solid rgba(217, 119, 6, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(180, 130, 40, 0.06) !important;
+}
+
+html[data-app-style="classic"] .rounded-3xl {
+  border-radius: 16px !important;
+}
+
+html[data-app-style="classic"] .rounded-2xl {
+  border-radius: 12px !important;
+}
+
+/* COMPACT FOCUSED STYLE (التصميم المدمج المركز لكفاءة وسرعة البيانات) */
+html[data-app-style="compact"] .p-6,
+html[data-app-style="compact"] .sm\:p-6,
+html[data-app-style="compact"] .p-8,
+html[data-app-style="compact"] .sm\:p-8 {
   padding: 0.875rem !important;
 }
-html[data-app-style="compact"] .p-5 {
-  padding: 0.75rem !important;
-}
+
+html[data-app-style="compact"] .p-5,
 html[data-app-style="compact"] .p-4 {
   padding: 0.625rem !important;
 }
+
 html[data-app-style="compact"] .py-3,
+html[data-app-style="compact"] .py-3\.5,
 html[data-app-style="compact"] .py-4 {
   padding-top: 0.375rem !important;
   padding-bottom: 0.375rem !important;
 }
-html[data-app-style="compact"] .gap-4 {
+
+html[data-app-style="compact"] .gap-4,
+html[data-app-style="compact"] .gap-6 {
   gap: 0.625rem !important;
 }
+
 html[data-app-style="compact"] .gap-3 {
   gap: 0.5rem !important;
 }
+
+html[data-app-style="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]),
 html[data-app-style="compact"] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
   margin-top: 0.625rem !important;
 }
+
 html[data-app-style="compact"] .space-y-3 > :not([hidden]) ~ :not([hidden]) {
   margin-top: 0.5rem !important;
 }
+
 html[data-app-style="compact"] .rounded-3xl {
-  border-radius: 1rem !important;
+  border-radius: 14px !important;
 }
+
 html[data-app-style="compact"] .rounded-2xl {
-  border-radius: 0.75rem !important;
+  border-radius: 10px !important;
 }
 
 /* MODERN CLEAN STYLE (التصميم العصري الأنيق - الافتراضي) */
@@ -483,7 +654,10 @@ html[data-app-style="modern"] {
   font-family: 'Cairo', sans-serif !important;
 }
 
-/* Print Styles */
+
+/* --------------------------------------------------------------------------
+   4. PRINT OPTIMIZATION
+   -------------------------------------------------------------------------- */
 @media print {
   body {
     background: white !important;
@@ -504,4 +678,3 @@ html[data-app-style="modern"] {
     margin: 10mm;
   }
 }
-

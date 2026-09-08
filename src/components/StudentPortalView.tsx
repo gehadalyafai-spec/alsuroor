@@ -2,15 +2,24 @@ import React, { useState } from 'react';
 import { useQuran } from '../context/QuranContext';
 import { useAuth } from '../context/AuthContext';
 import { getQuarterByNumber, getQuarterDetails } from '../data/quranData';
-import { getRequiredRecitationForSession, getDailyRevisionAssignment, formatRubsToJuzDescription, formatQuranProgress } from '../utils/quranLogic';
+import { 
+  getRequiredRecitationForSession, 
+  getDailyRevisionAssignment, 
+  formatRubsToJuzDescription, 
+  formatQuranProgress,
+  getCycleDaysBreakdown,
+  getWeeklySchedule
+} from '../utils/quranLogic';
 import { exportStudentToExcel } from '../utils/exportReports';
 import { RevisionStatus, SessionGrade } from '../types/quran';
 import { 
   BookOpen, CheckCircle2, Clock, Star, Calendar, FileText, 
   Download, Printer, Send, Award, AlertCircle, Sparkles, 
   ChevronRight, ChevronLeft, LogOut, ArrowRight, ShieldCheck, 
-  Check, UserCheck, RefreshCw, MessageSquare
+  Check, UserCheck, RefreshCw, MessageSquare, Layers, Sliders, Settings2, Save, Palette
 } from 'lucide-react';
+import { MutashabihatView } from './MutashabihatView';
+import { AppSettingsModal } from './AppSettingsModal';
 
 interface StudentPortalViewProps {
   onLogout?: () => void;
@@ -27,6 +36,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
     submitDailyRevision, 
     submitSessionRecitation,
     refreshStudentData,
+    updateStudent,
     isLoadingCloud,
     syncStatus
   } = useQuran();
@@ -42,7 +52,63 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   const student = students.find(s => s.id === activeStudentId);
 
   // Sub-tabs in student portal
-  const [activeTab, setActiveTab] = useState<'overview' | 'daily_revision' | 'session' | 'submissions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'daily_revision' | 'session' | 'submissions' | 'mutashabihat'>('overview');
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+
+  // Custom Wird Modal / Form State
+  const [showWirdCustomizer, setShowWirdCustomizer] = useState(false);
+  const [customWirdType, setCustomWirdType] = useState<'auto' | 'custom_juz'>('auto');
+  const [customStartJuz, setCustomStartJuz] = useState<number>(1);
+  const [customEndJuz, setCustomEndJuz] = useState<number>(3);
+  const [editCurrentRub, setEditCurrentRub] = useState<number>(1);
+  const [isSavingWirdCustomization, setIsSavingWirdCustomization] = useState(false);
+  const [wirdSaveSuccess, setWirdSaveSuccess] = useState(false);
+
+  // Initialize wird customizer values when student loads or modal opens
+  React.useEffect(() => {
+    if (student) {
+      setCustomWirdType(student.customWirdType || 'auto');
+      if (student.customWirdJuzRange) {
+        setCustomStartJuz(student.customWirdJuzRange[0]);
+        setCustomEndJuz(student.customWirdJuzRange[1]);
+      } else {
+        const studentJuz = Math.max(1, Math.min(30, Math.ceil((student.currentRub || 1) / 8)));
+        setCustomStartJuz(Math.max(1, studentJuz - 2));
+        setCustomEndJuz(studentJuz);
+      }
+      setEditCurrentRub(student.currentRub || 1);
+    }
+  }, [student?.id, student?.currentRub, student?.customWirdType, student?.customWirdJuzRange]);
+
+  const handleSaveWirdCustomization = async () => {
+    if (!student) return;
+    setIsSavingWirdCustomization(true);
+    try {
+      const partialUpdate: any = {
+        currentRub: editCurrentRub,
+        completedRubCount: Math.max(0, editCurrentRub - 1),
+        customWirdType,
+      };
+      if (customWirdType === 'custom_juz') {
+        const start = Math.min(customStartJuz, customEndJuz);
+        const end = Math.max(customStartJuz, customEndJuz);
+        partialUpdate.customWirdJuzRange = [start, end];
+      } else {
+        partialUpdate.customWirdJuzRange = null;
+      }
+
+      await updateStudent(student.id, partialUpdate);
+      setWirdSaveSuccess(true);
+      setTimeout(() => {
+        setWirdSaveSuccess(false);
+        setShowWirdCustomizer(false);
+      }, 1500);
+    } catch (e) {
+      console.error('Error saving student wird:', e);
+    } finally {
+      setIsSavingWirdCustomization(false);
+    }
+  };
 
   // Daily revision form state
   const [revisionDate, setRevisionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
@@ -188,6 +254,15 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsThemeModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-medium border border-stone-700 transition-colors cursor-pointer"
+              title="تخصيص ألوان ومظهر التطبيق ووضع القراءة"
+            >
+              <Palette className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">المظهر</span>
+            </button>
+
+            <button
               onClick={refreshStudentData}
               disabled={isLoadingCloud}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium border border-stone-700 transition-colors cursor-pointer disabled:opacity-50"
@@ -263,6 +338,18 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
           >
             <Clock className="w-4 h-4" />
             <span>سجل طلباتي واعتمادات المشرف ({studentSubmissions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('mutashabihat')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'mutashabihat'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-amber-300/80 hover:text-amber-200 hover:bg-stone-800/60'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-amber-400" />
+            <span>متشابهات القرآن</span>
           </button>
         </div>
       </header>
@@ -567,17 +654,167 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
               </div>
             )}
 
-            {/* Assigned Revision Quarters Details */}
+            {/* Assigned Revision Quarters Details & Wird Customization Button */}
             <div className="bg-emerald-50/70 border border-emerald-200 rounded-3xl p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <h3 className="font-bold text-sm text-emerald-950 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-emerald-700" />
-                  <span>الورد المقرر لتاريخ {revisionDate}:</span>
-                </h3>
-                <span className="bg-emerald-100/90 text-emerald-950 px-3 py-1 rounded-xl text-xs font-bold border border-emerald-300 shadow-2xs self-start sm:self-auto">
-                  {revPlan.description}
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <h3 className="font-bold text-sm text-emerald-950 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-emerald-700" />
+                    <span>الورد المقرر لتاريخ {revisionDate}:</span>
+                  </h3>
+                  <div className="text-xs text-emerald-800 mt-1">
+                    {student.customWirdType === 'custom_juz' && student.customWirdJuzRange ? (
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-lg font-semibold text-[11px] border border-amber-300">
+                        <Sliders className="w-3 h-3 text-amber-700" />
+                        <span>خطة مخصصة: الأجزاء ({student.customWirdJuzRange[0]} إلى {student.customWirdJuzRange[1]})</span>
+                      </span>
+                    ) : (
+                      <span className="text-stone-600 text-xs">
+                        وفق خطة الحلقة التلقائية (4 أرباع يومياً متقدمة على موضع الحفظ)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWirdCustomizer(!showWirdCustomizer)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>{showWirdCustomizer ? 'إخفاء خيارات التخصيص' : 'تعديل وتخصيص الورد / موضع الحفظ'}</span>
+                  </button>
+
+                  <span className="bg-emerald-100/90 text-emerald-950 px-3 py-1 rounded-xl text-xs font-bold border border-emerald-300 shadow-2xs self-start sm:self-auto">
+                    {revPlan.description}
+                  </span>
+                </div>
               </div>
+
+              {/* Collapsible Wird & Memorization Customizer Form */}
+              {showWirdCustomizer && (
+                <div className="mt-4 p-5 bg-white rounded-2xl border border-emerald-300 shadow-sm space-y-4 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="w-5 h-5 text-emerald-700" />
+                      <h4 className="font-bold text-sm text-stone-900">تخصيص موضع الحفظ وخطة الورد اليومي</h4>
+                    </div>
+                    <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
+                      يتم حفظ ومزامنة التعديل فوراً مع حساب المشرف وسجل السحاب
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 1. Memorization Position (currentRub) */}
+                    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
+                      <label className="block text-xs font-bold text-stone-800 mb-1.5">
+                        موضع الحفظ الحالي (الربع الجديد المستهدف):
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={240}
+                          value={editCurrentRub}
+                          onChange={(e) => setEditCurrentRub(Math.max(1, Math.min(240, Number(e.target.value) || 1)))}
+                          className="w-24 px-3 py-2 bg-white border border-stone-300 rounded-xl text-sm font-bold text-emerald-800 text-center outline-hidden focus:ring-2 focus:ring-emerald-600"
+                        />
+                        <div className="text-xs text-stone-600">
+                          {(() => {
+                            const info = getQuarterDetails(editCurrentRub);
+                            return info ? `سورة ${info.surahName} • الجزء ${info.juz}` : '';
+                          })()}
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-2">
+                        تعديل هذا الرقم يحدّث فوراً موقع الطالب في جدول التسميع وإحصائيات الختمة.
+                      </p>
+                    </div>
+
+                    {/* 2. Daily Revision Plan Mode */}
+                    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
+                      <label className="block text-xs font-bold text-stone-800 mb-1.5">
+                        نوع خطة الورد اليومي:
+                      </label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-xs font-medium text-stone-800 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="wirdType"
+                            checked={customWirdType === 'auto'}
+                            onChange={() => setCustomWirdType('auto')}
+                            className="text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span>خطة الحلقة التلقائية (الأرباع السابقة لموضع الحفظ)</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-medium text-stone-800 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="wirdType"
+                            checked={customWirdType === 'custom_juz'}
+                            onChange={() => setCustomWirdType('custom_juz')}
+                            className="text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span>خطة مخصصة بالأجزاء (تحديد نطاق أجزاء للمراجعة)</span>
+                        </label>
+                      </div>
+
+                      {customWirdType === 'custom_juz' && (
+                        <div className="mt-3 pt-3 border-t border-stone-200 flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-stone-600">من الجزء:</span>
+                            <select
+                              value={customStartJuz}
+                              onChange={(e) => setCustomStartJuz(Number(e.target.value))}
+                              className="px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-800 cursor-pointer"
+                            >
+                              {Array.from({ length: 30 }).map((_, i) => (
+                                <option key={i + 1} value={i + 1}>الجزء {i + 1}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-stone-600">إلى الجزء:</span>
+                            <select
+                              value={customEndJuz}
+                              onChange={(e) => setCustomEndJuz(Number(e.target.value))}
+                              className="px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-800 cursor-pointer"
+                            >
+                              {Array.from({ length: 30 }).map((_, i) => (
+                                <option key={i + 1} value={i + 1}>الجزء {i + 1}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    {wirdSaveSuccess && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl flex items-center gap-1">
+                        <Check className="w-4 h-4" />
+                        <span>تم حفظ وتحديث ومزامنة الورد وموضع الحفظ فوراً!</span>
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleSaveWirdCustomization}
+                      disabled={isSavingWirdCustomization}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      {isSavingWirdCustomization ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5" />
+                      )}
+                      <span>حفظ ومزامنة التعديلات الآن</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5 mt-3">
                 {revPlan.assignedRubs.map((rubNum) => {
@@ -594,6 +831,58 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Khatmah Revision Cycle & 7-Day Schedule Accordion */}
+              <div className="mt-4 pt-4 border-t border-emerald-200/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-lg bg-emerald-600 text-white">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </span>
+                    <h4 className="font-bold text-xs text-emerald-950">
+                      دورة ختمة الورد الكاملة بمعدل 3 أجزاء يومياً (24 ربعاً):
+                    </h4>
+                  </div>
+                  <span className="text-[11px] text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-300 font-semibold self-start sm:self-auto">
+                    {(() => {
+                      const cycle = getCycleDaysBreakdown(student.currentRub);
+                      return `إجمالي دورة الورد: ${cycle.length} ${cycle.length === 1 ? 'يوم واحد' : cycle.length === 2 ? 'يومان' : `${cycle.length} أيام`}`;
+                    })()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                  {getCycleDaysBreakdown(student.currentRub).map((cDay) => (
+                    <div 
+                      key={cDay.dayNumber}
+                      className={`p-3 rounded-2xl border transition-all ${
+                        cDay.isRemainder
+                          ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                          : 'bg-white border-emerald-200 text-emerald-950'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-xs font-bold">اليوم {cDay.dayNumber}</span>
+                        {cDay.isRemainder ? (
+                          <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded-full border border-amber-300">
+                            تكرار ×{cDay.repeatCount}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
+                            3 أجزاء
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-stone-900 line-clamp-1">
+                        {cDay.shortLabel}
+                      </div>
+                      <div className="text-[10px] text-stone-500 mt-1 leading-tight">
+                        {cDay.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1020,7 +1309,39 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
           </div>
         )}
 
+        {/* 5. MUTASHABIHAT TAB */}
+        {activeTab === 'mutashabihat' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-xs font-bold mb-2">
+                  <Layers className="w-3.5 h-3.5 text-amber-700" />
+                  <span>دليل متشابهات القرآن الكريم للطالب</span>
+                </div>
+                <h2 className="text-xl font-bold text-stone-900">
+                  المتشابهات اللفظية والضوابط التثبيتية
+                </h2>
+                <p className="text-xs text-stone-500 mt-1">
+                  استعرض المتشابهات وركز على أجزاء حفظك الحالية مع اختبارات إخفاء الفروق والضوابط الذهبية
+                </p>
+              </div>
+              <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl px-4 py-2 text-xs font-semibold">
+                <span>موضع حفظك الحالي: </span>
+                <span className="font-bold text-emerald-950">الربع {student.currentRub} (الجزء {Math.ceil((student.currentRub || 1) / 8)})</span>
+              </div>
+            </div>
+
+            <MutashabihatView />
+          </div>
+        )}
+
       </main>
+
+      {/* App Appearance & Theme Settings Modal */}
+      <AppSettingsModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+      />
     </div>
   );
 };

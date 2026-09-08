@@ -22,8 +22,9 @@ import { StudentSubmissionsModal } from './components/StudentSubmissionsModal';
 import { SupervisorManagementModal } from './components/SupervisorManagementModal';
 import { AiAssistantModal } from './components/AiAssistantModal';
 import { AppSettingsModal } from './components/AppSettingsModal';
+import { MutashabihatView } from './components/MutashabihatView';
 import { ThemeProvider } from './context/ThemeContext';
-import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp } from 'lucide-react';
+import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp, Layers } from 'lucide-react';
 
 function AppContent() {
   const { user, isAuthorizedSupervisor, loading: loadingAuth } = useAuth();
@@ -187,6 +188,10 @@ function AppContent() {
           <QuranIndexView onOpenStudentModal={(id) => setSelectedStudentId(id)} />
         )}
 
+        {activeTab === 'mutashabihat' && (
+          <MutashabihatView />
+        )}
+
         {activeTab === 'guide' && <GuideModal />}
       </main>
 
@@ -209,7 +214,7 @@ function AppContent() {
           }`}
         >
           <CheckSquare className="w-4 h-4" />
-          <span>الورد اليومي</span>
+          <span>الورد</span>
         </button>
 
         <button
@@ -223,13 +228,13 @@ function AppContent() {
         </button>
 
         <button
-          onClick={() => setActiveTab('reports')}
+          onClick={() => setActiveTab('mutashabihat')}
           className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold py-1 px-1.5 rounded-lg transition-colors ${
-            activeTab === 'reports' ? 'text-emerald-400 font-bold' : 'hover:text-stone-200'
+            activeTab === 'mutashabihat' ? 'text-amber-400 font-bold' : 'hover:text-stone-200'
           }`}
         >
-          <TrendingUp className="w-4 h-4" />
-          <span>التقارير</span>
+          <Layers className="w-4 h-4" />
+          <span>متشابهات</span>
         </button>
 
         <button

@@ -1,4 +1,4 @@
-import { RecitationPlan, DailyScheduleDay, Student } from '../types/quran';
+import { RecitationPlan, DailyScheduleDay, Student, CycleDayInfo } from '../types/quran';
 import { getQuarterByNumber } from '../data/quranData';
 
 export const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -32,8 +32,8 @@ export function getRequiredRecitationForSession(targetNewRub: number): Recitatio
 
 /**
  * Helper to convert an array of quarters to its clear, authentic Arabic Juz'/Rub' representation.
- * If quarters span full Juz' (e.g. 1..24), it is displayed as "الجزء 1 - 2 - 3".
- * If there are remaining quarters with a repeat count (e.g. 2 quarters × 12), it mentions the repeat count and 3 Juz equivalent.
+ * - If quarters span full Juz' (e.g. 1..24), it is displayed as "الجزء 1 - 2 - 3".
+ * - If there are remaining quarters with a repeat count (e.g. 4 quarters × 6), it clearly details the repetition and 3 Juz equivalence.
  */
 export function formatRubsToJuzDescription(
   assignedRubs: number[],
@@ -49,7 +49,6 @@ export function formatRubsToJuzDescription(
   const count = sorted.length;
 
   // Check if this range corresponds exactly to complete, whole Juz'
-  // A whole Juz block starts at ((first - 1) % 8 === 0) and ends at (last % 8 === 0)
   const isWholeJuzStart = (first - 1) % 8 === 0;
   const isWholeJuzEnd = last % 8 === 0;
   const isSequential = last - first + 1 === count;
@@ -74,8 +73,9 @@ export function formatRubsToJuzDescription(
         isFullJuz: true,
       };
     } else {
+      const partsWord = parts.length === 3 ? ' (3 أجزاء كاملة / 24 ربعاً)' : parts.length === 1 ? ' (جزء كامل / 8 أرباع)' : ` (${parts.length} أجزاء كاملة)`;
       return {
-        fullDescription: juzTitle,
+        fullDescription: `${juzTitle}${partsWord}`,
         shortLabel: juzTitle,
         isFullJuz: true,
       };
@@ -103,19 +103,34 @@ export function formatRubsToJuzDescription(
   if (count === 2) {
     if (repeatCount > 1) {
       return {
-        fullDescription: `ربعين من الربع ${first} إلى ${last} (تكرار ${repeatCount} مرة = بما يعادل 24 ربعاً / 3 أجزاء)`,
+        fullDescription: `ربعين (الربع ${first} إلى ${last}) (تكرار ${repeatCount} مرة = بما يعادل 24 ربعاً / 3 أجزاء)`,
         shortLabel: `الربع ${first}-${last} (×${repeatCount})`,
         isFullJuz: false,
       };
     }
     return {
-      fullDescription: `ربعين (من الربع ${first} إلى ${last})`,
+      fullDescription: `ربعين (الربع ${first} إلى ${last})`,
       shortLabel: `الربع ${first}-${last}`,
       isFullJuz: false,
     };
   }
 
-  // Count > 2 but not exact whole Juz block:
+  if (count === 4) {
+    if (repeatCount > 1) {
+      return {
+        fullDescription: `4 أرباع / نصف جزء (من الربع ${first} إلى ${last}) (تكرار ${repeatCount} مرات = بما يعادل 24 ربعاً / 3 أجزاء)`,
+        shortLabel: `الأرباع ${first}-${last} (×${repeatCount})`,
+        isFullJuz: false,
+      };
+    }
+    return {
+      fullDescription: `4 أرباع / نصف جزء (من الربع ${first} إلى ${last})`,
+      shortLabel: `الأرباع ${first}-${last}`,
+      isFullJuz: false,
+    };
+  }
+
+  // General count
   if (repeatCount > 1) {
     return {
       fullDescription: `من الربع ${first} إلى ${last} (${count} أرباع - تكرار ${repeatCount} مرات = بما يعادل 24 ربعاً / 3 أجزاء)`,
@@ -124,14 +139,14 @@ export function formatRubsToJuzDescription(
     };
   }
 
-  // If first === 1 and has whole juz plus remaining rubs (e.g., 10 quarters):
+  // If starts at 1 with multiple quarters:
   if (first === 1 && count > 8) {
     const fullJuzCount = Math.floor(count / 8);
     const remRubs = count % 8;
     const parts = Array.from({ length: fullJuzCount }, (_, i) => i + 1);
     const remWord = remRubs === 1 ? 'ربع واحد' : remRubs === 2 ? 'ربعين' : `${remRubs} أرباع`;
     return {
-      fullDescription: `الجزء ${parts.join(' - ')} + ${remWord} (من الربع 1 إلى ${last})`,
+      fullDescription: `الجزء ${parts.join(' - ')} + ${remWord} (من الربع 1 إلى ${last} = ${count} ربعاً)`,
       shortLabel: `الجزء ${parts.join(' - ')} + ${remRubs} أرباع`,
       isFullJuz: false,
     };
@@ -145,8 +160,8 @@ export function formatRubsToJuzDescription(
 }
 
 /**
- * Formats a student's Quran progress in Juz' and Quarters according to Quranic rules:
- * e.g. 99 -> "12 جزء و 3 أرباع", 96 -> "12 جزء كامل", 8 -> "جزء كامل", 2 -> "ربعين".
+ * Formats a student's Quran progress in Juz' and Quarters according to authentic Quranic rules:
+ * e.g. 100 -> "12 جزء و 4 أرباع", 96 -> "12 جزء كامل", 25 -> "3 أجزاء و ربع واحد", 8 -> "جزء كامل", 2 -> "ربعين".
  */
 export function formatQuranProgress(rubNumber: number): string {
   if (!rubNumber || rubNumber <= 0) return 'لم يبدأ بعد';
@@ -184,23 +199,117 @@ export function formatQuranProgress(rubNumber: number): string {
 }
 
 /**
- * Calculates what the student's daily self-revision (ورد المراجعة الذاتية) is for each day of the week.
+ * Generates the full breakdown of all days in the student's complete Khatmah Revision Cycle (دورة ختمة الورد).
  *
- * Rules:
- * 1. If student has a custom configured wird (e.g. custom_juz [7, 9] or custom_rubs): uses that explicitly.
- * 2. Mon & Tue: Reviews what was memorized up to Sunday's session.
- * 3. Wed: Circle session (tests previous + new quarter).
- * 4. Thu, Fri, Sat: Reviews what has been memorized up to Wednesday's session.
- * 5. Sun: Circle session (tests previous + new quarter).
- * 6. Daily review capacity: 24 quarters (3 Juz').
- *    - Once the student reaches 24 quarters (or whole Juz blocks), the assignment is written as Juz' (e.g. "الجزء 1 - 2 - 3").
- *    - If memorized quarters exceed 24 (e.g. 26 quarters), it rotates in chunks of up to 24 quarters.
- *      The remaining chunk (e.g. 2 quarters) is repeated (e.g. 12 times) to equal the 24-quarter daily capacity (3 Juz').
+ * Exact Quranic Progression Rules:
+ * 1. If memorized quarters M <= 24 (<= 3 Juz'):
+ *    - The student reviews all M quarters in a single daily cycle day.
+ * 2. If memorized quarters M > 24 (> 3 Juz'):
+ *    - The archive is partitioned into 3-Juz blocks (24 quarters each):
+ *      Day 1: Juz 1 - 2 - 3 (Quarters 1..24)
+ *      Day 2: Juz 4 - 5 - 6 (Quarters 25..48)
+ *      Day 3: Juz 7 - 8 - 9 (Quarters 49..72)
+ *      Day 4: Juz 10 - 11 - 12 (Quarters 73..96)
+ *      ...
+ *    - If there is a remainder of R quarters (where 0 < R < 24):
+ *      The final day covers quarters from (fullBlocks * 24 + 1) to M,
+ *      repeated N = Math.round(24 / R) times to equal the daily 3-Juz (24-quarter) capacity!
+ *      Example 1: 3 Juz + 1 quarter (25 quarters) -> Day 2: Quarter 25 repeated 24 times (1 x 24 = 24).
+ *      Example 2: 4 Juz (32 quarters) -> Day 2: Juz 4 (8 quarters) repeated 3 times (8 x 3 = 24).
+ *      Example 3: 12 Juz + 4 quarters (100 quarters) -> Day 5: Quarters 97..100 (4 quarters) repeated 6 times (4 x 6 = 24).
+ *    - After the final day, the cycle restarts seamlessly from Day 1.
+ */
+export function getCycleDaysBreakdown(currentRub: number): CycleDayInfo[] {
+  const safeRub = Math.max(1, Math.min(240, currentRub));
+  const maxDailyWird = 24; // 24 quarters = 3 Juz'
+
+  if (safeRub <= maxDailyWird) {
+    const rubs = Array.from({ length: safeRub }, (_, i) => i + 1);
+    const formatted = formatRubsToJuzDescription(rubs, 1);
+    return [
+      {
+        dayNumber: 1,
+        totalDays: 1,
+        rubs,
+        startRub: 1,
+        endRub: safeRub,
+        distinctCount: safeRub,
+        repeatCount: 1,
+        totalQuartersVolume: safeRub,
+        isRemainder: false,
+        title: formatted.shortLabel,
+        description: formatted.fullDescription,
+        shortLabel: formatted.shortLabel,
+      },
+    ];
+  }
+
+  const fullBlocksCount = Math.floor(safeRub / maxDailyWird);
+  const remainderQuarters = safeRub % maxDailyWird;
+  const totalDays = fullBlocksCount + (remainderQuarters > 0 ? 1 : 0);
+
+  const days: CycleDayInfo[] = [];
+
+  for (let b = 0; b < fullBlocksCount; b++) {
+    const startRub = b * maxDailyWird + 1;
+    const endRub = (b + 1) * maxDailyWird;
+    const rubs: number[] = [];
+    for (let r = startRub; r <= endRub; r++) {
+      rubs.push(r);
+    }
+    const formatted = formatRubsToJuzDescription(rubs, 1);
+    days.push({
+      dayNumber: b + 1,
+      totalDays,
+      rubs,
+      startRub,
+      endRub,
+      distinctCount: maxDailyWird,
+      repeatCount: 1,
+      totalQuartersVolume: maxDailyWird,
+      isRemainder: false,
+      title: formatted.shortLabel,
+      description: formatted.fullDescription,
+      shortLabel: formatted.shortLabel,
+    });
+  }
+
+  if (remainderQuarters > 0) {
+    const startRub = fullBlocksCount * maxDailyWird + 1;
+    const endRub = safeRub;
+    const rubs: number[] = [];
+    for (let r = startRub; r <= endRub; r++) {
+      rubs.push(r);
+    }
+    const distinctCount = rubs.length;
+    const repeatCount = Math.max(1, Math.round(maxDailyWird / distinctCount));
+    const formatted = formatRubsToJuzDescription(rubs, repeatCount);
+    days.push({
+      dayNumber: totalDays,
+      totalDays,
+      rubs,
+      startRub,
+      endRub,
+      distinctCount,
+      repeatCount,
+      totalQuartersVolume: distinctCount * repeatCount,
+      isRemainder: true,
+      title: formatted.shortLabel,
+      description: formatted.fullDescription,
+      shortLabel: formatted.shortLabel,
+    });
+  }
+
+  return days;
+}
+
+/**
+ * Calculates what the student's daily self-revision (ورد المراجعة الذاتية) is for any specific day.
  */
 export function getDailyRevisionAssignment(
   studentCurrentRub: number,
   dayOfWeek: number, // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  cycleOffsetDay: number = 0, // day offset for rotating when memorized >= 24
+  cycleOffsetDay: number = 0, // day offset for rotating across the cycle
   student?: Student
 ): { 
   assignedRubs: number[]; 
@@ -212,6 +321,9 @@ export function getDailyRevisionAssignment(
   isCircleDay: boolean;
   isFullJuz: boolean;
   isCustomWird: boolean;
+  cycleDayNumber: number;
+  totalCycleDays: number;
+  isRemainderDay: boolean;
 } {
   const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3; // Sunday or Wednesday
 
@@ -235,6 +347,9 @@ export function getDailyRevisionAssignment(
       isCircleDay,
       isFullJuz: formatted.isFullJuz,
       isCustomWird: true,
+      cycleDayNumber: 1,
+      totalCycleDays: 1,
+      isRemainderDay: false,
     };
   }
 
@@ -252,58 +367,34 @@ export function getDailyRevisionAssignment(
       isCircleDay,
       isFullJuz: formatted.isFullJuz,
       isCustomWird: true,
+      cycleDayNumber: 1,
+      totalCycleDays: 1,
+      isRemainderDay: false,
     };
   }
 
-  // 2. Default Auto-Rotation calculation based on memorized quarters
-  // Effective memorized count prior to this day
-  let effectiveMemorized = Math.max(1, studentCurrentRub - 1);
-  if (dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
-    // After Wednesday session or on Sunday
-    effectiveMemorized = Math.max(1, studentCurrentRub);
-  }
+  // 2. Standard Pedagogical Algorithm
+  const safeRub = Math.max(1, studentCurrentRub);
+  const cycleBreakdown = getCycleDaysBreakdown(safeRub);
+  const totalCycleDays = cycleBreakdown.length;
 
-  const maxDailyWird = 24; // 24 quarters = 3 Juz'
-  let assignedRubs: number[] = [];
-  let repeatCount = 1;
-
-  if (effectiveMemorized <= maxDailyWird) {
-    // Student has 24 quarters or fewer
-    for (let r = 1; r <= effectiveMemorized; r++) {
-      assignedRubs.push(r);
-    }
-  } else {
-    // Student has more than 24 quarters memorized!
-    // Partition the archive into chunks of up to 24 quarters (3 Juz' each)
-    const totalCycleDays = Math.ceil(effectiveMemorized / maxDailyWird);
-    const cycleIndex = ((cycleOffsetDay % totalCycleDays) + totalCycleDays) % totalCycleDays;
-
-    const startRub = cycleIndex * maxDailyWird + 1;
-    const endRub = Math.min(effectiveMemorized, (cycleIndex + 1) * maxDailyWird);
-
-    for (let r = startRub; r <= endRub; r++) {
-      assignedRubs.push(r);
-    }
-
-    const distinctCount = assignedRubs.length;
-    if (distinctCount < maxDailyWird) {
-      repeatCount = Math.max(1, Math.round(maxDailyWird / distinctCount));
-    }
-  }
-
-  const formatted = formatRubsToJuzDescription(assignedRubs, repeatCount);
-  const totalCount = assignedRubs.length * repeatCount;
+  // Determine index in cycle
+  const cycleIndex = ((cycleOffsetDay % totalCycleDays) + totalCycleDays) % totalCycleDays;
+  const currentCycleDay = cycleBreakdown[cycleIndex] || cycleBreakdown[0];
 
   return {
-    assignedRubs,
-    totalCount,
-    distinctCount: assignedRubs.length,
-    repeatCount,
-    description: formatted.fullDescription,
-    shortLabel: formatted.shortLabel,
+    assignedRubs: currentCycleDay.rubs,
+    totalCount: currentCycleDay.totalQuartersVolume,
+    distinctCount: currentCycleDay.distinctCount,
+    repeatCount: currentCycleDay.repeatCount,
+    description: currentCycleDay.description,
+    shortLabel: currentCycleDay.shortLabel,
     isCircleDay,
-    isFullJuz: formatted.isFullJuz,
+    isFullJuz: !currentCycleDay.isRemainder && currentCycleDay.distinctCount >= 8,
     isCustomWird: false,
+    cycleDayNumber: currentCycleDay.dayNumber,
+    totalCycleDays: currentCycleDay.totalDays,
+    isRemainderDay: currentCycleDay.isRemainder,
   };
 }
 
@@ -311,10 +402,9 @@ export function getDailyRevisionAssignment(
  * Generates the full 7-day schedule for the current or specified week for a student.
  */
 export function getWeeklySchedule(student: Student, referenceDate: Date = new Date()): DailyScheduleDay[] {
-  // Find the Sunday of the current week (starting Sunday)
   const current = new Date(referenceDate);
   const day = current.getDay(); // 0 is Sunday
-  const diffToSunday = day; // 0 days back if today is Sunday
+  const diffToSunday = day;
   const sunday = new Date(current);
   sunday.setDate(current.getDate() - diffToSunday);
 
@@ -329,7 +419,6 @@ export function getWeeklySchedule(student: Student, referenceDate: Date = new Da
     const dayName = ARABIC_DAYS[dayOfWeek];
     const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3;
 
-    // Use day offset i for rotating chunks across the days of the week
     const assignment = getDailyRevisionAssignment(student.currentRub, dayOfWeek, i, student);
 
     days.push({
@@ -340,6 +429,12 @@ export function getWeeklySchedule(student: Student, referenceDate: Date = new Da
       assignedRubs: assignment.assignedRubs,
       assignedCount: assignment.totalCount,
       description: assignment.description,
+      shortLabel: assignment.shortLabel,
+      repeatCount: assignment.repeatCount,
+      cycleDayNumber: assignment.cycleDayNumber,
+      totalCycleDays: assignment.totalCycleDays,
+      isRemainderDay: assignment.isRemainderDay,
+      isFullJuz: assignment.isFullJuz,
     });
   }
 
@@ -389,30 +484,38 @@ export function generateWhatsAppMessage(student: Student): string {
   const plan = getRequiredRecitationForSession(student.currentRub);
   const newQ = getQuarterByNumber(plan.newRub);
   const weekly = getWeeklySchedule(student);
+  const cycleDays = getCycleDaysBreakdown(student.currentRub);
 
   const linkingText = plan.linkingRubs.length > 0
     ? plan.linkingRubs.map(r => `• ربع ${r} (${getQuarterByNumber(r)?.surahName || ''})`).join('\n')
     : 'لا يوجد ربط (طالب مستجد)';
 
   const weeklyText = weekly.map(w => {
-    const circleTag = w.isCircleDay ? ' 🕌 [يوم الحلقة]' : '';
-    return `▪️ ${w.dayName}${circleTag}: ${w.description}`;
+    const circleTag = w.isCircleDay ? ' 🕌 [جلسة تسميع بالحلقة]' : '';
+    const cycleTag = w.totalCycleDays && w.totalCycleDays > 1 ? ` (اليوم ${w.cycleDayNumber} من ${w.totalCycleDays})` : '';
+    return `▪️ ${w.dayName}${circleTag}${cycleTag}: ${w.description}`;
   }).join('\n');
 
-  return `🌿 *حلقة القرآن الكريم - جدول المتابعة* 🌿
+  const cycleSummary = cycleDays.length > 1
+    ? `\n━━━━━━━━━━━━━━━\n🔄 *دورة ختمة الورد الكاملة (${cycleDays.length} أيام - بمعدل 3 أجزاء يومياً):*\n` +
+      cycleDays.map(cd => `▫️ اليوم ${cd.dayNumber}: ${cd.description}`).join('\n')
+    : '';
+
+  return `🌿 *حلقة القرآن الكريم - جامع السرور* 🌿
 👤 الطالب: *${student.name}*
-🎯 المستوى الحالي: الجزء ${Math.floor((student.currentRub - 1) / 8) + 1} - الربع ${((student.currentRub - 1) % 8) + 1} (الربع الإجمالي ${student.currentRub} من 240)
+🎯 المستوى وموضع الحفظ: ${formatQuranProgress(student.currentRub)} (الربع ${student.currentRub} من 240)
 
 ━━━━━━━━━━━━━━━
 📖 *المطلوب تسميعه في جلسة الحلقة القادمة:*
 ⭐ *الربع الجديد:* ربع ${plan.newRub} - سورة ${newQ?.surahName} ("${newQ?.startVerseText.slice(0, 35)}...")
 🔗 *أرباع الربط السابق (${plan.linkingRubs.length} أرباع):*
 ${linkingText}
-مجموع ما يسمعه الطالب في الحلقة: ${plan.totalCount} أرباع.
+مجموع ما يسمعه الطالب في الجلسة: ${plan.totalCount} أرباع.
 
 ━━━━━━━━━━━━━━━
-📅 *جدول ورد المراجعة الذاتية للأسبوع الحالي:*
+📅 *جدول ورد المراجعة اليومية للأسبوع الحالي:*
 ${weeklyText}
+${cycleSummary}
 
-💡 *توجيه المعلم:* المراجعة اليومية هي سر رسوخ الحفظ وبركته. بارك الله في همتكم!`;
+💡 *توجيه المعلم:* المراجعة اليومية المنتظمة هي سر رسوخ الحفظ وبركته. بارك الله في همتكم!`;
 }

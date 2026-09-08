@@ -1,11 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { useQuran } from '../context/QuranContext';
-import { getDailyRevisionAssignment, ARABIC_DAYS, getWeeklySchedule } from '../utils/quranLogic';
+import { 
+  getDailyRevisionAssignment, 
+  ARABIC_DAYS, 
+  getWeeklySchedule,
+  getCycleDaysBreakdown,
+  formatQuranProgress 
+} from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
 import { RevisionStatus } from '../types/quran';
 import { 
   CheckSquare, Calendar, ChevronRight, ChevronLeft, Check, 
-  AlertTriangle, X, Star, Sparkles, Filter, Grid, List, CheckCircle2 
+  AlertTriangle, X, Star, Sparkles, Filter, Grid, List, CheckCircle2,
+  RefreshCw, Info
 } from 'lucide-react';
 
 interface DailyRevisionViewProps {
@@ -344,6 +351,16 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
                         <span className="bg-emerald-100/80 text-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-300 font-bold text-xs shadow-2xs">
                           {assignment.description}
                         </span>
+                        {assignment.totalCycleDays > 1 && (
+                          <span className="bg-teal-50 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-teal-200">
+                            اليوم {assignment.cycleDayNumber} من {assignment.totalCycleDays} في الدورة
+                          </span>
+                        )}
+                        {assignment.isRemainderDay && assignment.repeatCount > 1 && (
+                          <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-300">
+                            تكرار ×{assignment.repeatCount} (لتوازي 3 أجزاء)
+                          </span>
+                        )}
                       </div>
 
                       {/* Progress to 24 quarters indicator */}

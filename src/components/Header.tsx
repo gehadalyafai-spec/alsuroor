@@ -6,7 +6,7 @@ import {
   Download, Upload, RotateCcw, Cloud, CloudOff, 
   RefreshCw, LogOut, User, Check, AlertTriangle, ShieldCheck,
   TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles,
-  Palette, Sliders
+  Palette, Sliders, Layers
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -514,6 +514,19 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span>فهرس الأرباع (240)</span>
+          </button>
+
+          <button
+            id="tab-mutashabihat"
+            onClick={() => setActiveTab('mutashabihat')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'mutashabihat'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-amber-300/80 hover:text-amber-200 hover:bg-stone-800/60'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-amber-400" />
+            <span>متشابهات القرآن</span>
           </button>
 
           <button

@@ -5,7 +5,8 @@ import {
   getWeeklySchedule, 
   generateWhatsAppMessage, 
   calculateStudentStats,
-  formatQuranProgress 
+  formatQuranProgress,
+  getCycleDaysBreakdown 
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
 import { QuranQuarterSelector } from './QuranQuarterSelector';
@@ -554,8 +555,13 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
 
           {/* Full 7-Day Weekly Revision Schedule Table */}
           <div className="bg-white border border-stone-200 rounded-2xl p-4 space-y-3 shadow-xs">
-            <div className="font-bold text-xs text-stone-800">
-              خطة ورد المراجعة الذاتية للأسبوع الحالي (الأحد إلى السبت):
+            <div className="flex items-center justify-between">
+              <div className="font-bold text-xs text-stone-800">
+                خطة ورد المراجعة للأسبوع الحالي (الأحد إلى السبت):
+              </div>
+              <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold">
+                بمعدل 3 أجزاء (24 ربعاً) يومياً
+              </span>
             </div>
             <div className="divide-y divide-stone-100 text-xs">
               {weeklySchedule.map((day) => (
@@ -571,6 +577,11 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                     {day.isCircleDay && (
                       <span className="text-[10px] text-emerald-700 font-medium">(يوم تسميع الحلقة)</span>
                     )}
+                    {day.totalCycleDays && day.totalCycleDays > 1 && (
+                      <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">
+                        اليوم {day.cycleDayNumber} من {day.totalCycleDays}
+                      </span>
+                    )}
                   </div>
                   <div className="text-stone-700 font-medium text-left">
                     {day.description}
@@ -578,6 +589,35 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                 </div>
               ))}
             </div>
+
+            {/* Cycle Days Breakdown for this student */}
+            {(() => {
+              const cycle = getCycleDaysBreakdown(student.currentRub);
+              if (cycle.length <= 1) return null;
+              return (
+                <div className="mt-3 pt-3 border-t border-stone-200">
+                  <div className="text-[11px] font-bold text-stone-700 mb-2 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>دورة ختمة الورد الكاملة للطالب ({cycle.length} أيام):</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {cycle.map((c) => (
+                      <div key={c.dayNumber} className={`p-2 rounded-xl border text-xs ${c.isRemainder ? 'bg-amber-50 border-amber-300 text-amber-950' : 'bg-stone-50 border-stone-200 text-stone-900'}`}>
+                        <div className="flex items-center justify-between font-bold mb-0.5">
+                          <span>اليوم {c.dayNumber}</span>
+                          {c.isRemainder ? (
+                            <span className="text-[10px] bg-amber-200 px-1.5 rounded-full font-bold">×{c.repeatCount}</span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 rounded-full">3 أجزاء</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-semibold text-stone-800">{c.shortLabel}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Past Circle Sessions Log */}

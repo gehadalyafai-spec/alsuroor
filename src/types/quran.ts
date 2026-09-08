@@ -107,6 +107,21 @@ export interface RecitationPlan {
   totalCount: number;
 }
 
+export interface CycleDayInfo {
+  dayNumber: number;
+  totalDays: number;
+  rubs: number[];
+  startRub: number;
+  endRub: number;
+  distinctCount: number;
+  repeatCount: number;
+  totalQuartersVolume: number;
+  isRemainder: boolean;
+  title: string;
+  description: string;
+  shortLabel: string;
+}
+
 export interface DailyScheduleDay {
   date: string; // YYYY-MM-DD
   dayOfWeek: number; // 0 to 6
@@ -115,5 +130,43 @@ export interface DailyScheduleDay {
   assignedRubs: number[];
   assignedCount: number;
   description: string;
+  shortLabel?: string;
+  repeatCount?: number;
+  cycleDayNumber?: number;
+  totalCycleDays?: number;
+  isRemainderDay?: boolean;
+  isFullJuz?: boolean;
   isCompleted?: boolean;
+}
+
+export type MutashabihatCategory = 
+  | 'letters_particles' // حروف وزيادات
+  | 'word_order'        // تقديم وتأخير
+  | 'endings'           // فواصل وخواتيم الآيات
+  | 'stories'           // قصص الأنبياء
+  | 'word_replacement'  // إبدال كلمات
+  | 'general';          // عامة
+
+export interface MutashabihahVerse {
+  surahName: string;
+  surahNumber: number;
+  ayahNumber: number;
+  juz: number;
+  page: number;
+  text: string;
+  highlightPhrase: string;
+  contextNote?: string;
+}
+
+export interface MutashabihahItem {
+  id: string;
+  title: string;
+  category: MutashabihatCategory;
+  juzList: number[];
+  surahs: string[];
+  verses: MutashabihahVerse[];
+  rule: string;
+  explanation: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  tags: string[];
 }
