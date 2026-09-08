@@ -164,19 +164,6 @@ export const StudentsView: React.FC<StudentsViewProps> = ({ onOpenAddModal, onOp
                       {todayWird.description}
                     </div>
                   </div>
-
-                  {/* Recitation in session */}
-                  <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70 space-y-1">
-                    <div className="text-[11px] text-stone-500 font-medium">تسميع الجلسة القادمة (4 أرباع):</div>
-                    <div className="text-xs font-semibold text-stone-800 flex items-center gap-1 flex-wrap">
-                      <span className="text-emerald-800 font-bold">الجديد: ربع {plan.newRub}</span>
-                      {plan.linkingRubs.length > 0 && (
-                        <span className="text-stone-500 text-[10px]">
-                          + ربط ({plan.linkingRubs.join('، ')})
-                        </span>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
 

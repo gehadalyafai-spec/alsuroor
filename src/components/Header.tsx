@@ -5,7 +5,8 @@ import {
   BookOpen, Users, Calendar, CheckSquare, HelpCircle, Plus, 
   Download, Upload, RotateCcw, Cloud, CloudOff, 
   RefreshCw, LogOut, User, Check, AlertTriangle, ShieldCheck,
-  TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles
+  TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles,
+  Palette, Sliders
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ interface HeaderProps {
   onOpenSubmissionsModal?: () => void;
   onOpenSupervisorModal?: () => void;
   onOpenAiModal?: () => void;
+  onOpenSettingsModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -23,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTransferModal,
   onOpenSubmissionsModal,
   onOpenSupervisorModal,
-  onOpenAiModal
+  onOpenAiModal,
+  onOpenSettingsModal
 }) => {
   const { 
     activeTab, 
@@ -233,6 +236,20 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {/* Theme & App Settings Button */}
+          {onOpenSettingsModal && (
+            <button
+              type="button"
+              id="open-app-settings-btn"
+              onClick={onOpenSettingsModal}
+              className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-750 border border-stone-700/80 text-amber-300 hover:text-amber-200 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+              title="إعدادات وتخصيص ألوان وتصميم التطبيق"
+            >
+              <Palette className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">المظهر والإعدادات</span>
+            </button>
+          )}
+
           {/* User Profile / Menu */}
           {user && (
             <div className="relative">
@@ -282,6 +299,24 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                       <span className="text-[10px] text-stone-400">تحديث</span>
                     </button>
+
+                    {onOpenSettingsModal && (
+                      <button
+                        type="button"
+                        id="user-settings-appearance-btn"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onOpenSettingsModal();
+                        }}
+                        className="w-full text-right px-3 py-2 hover:bg-stone-700/80 rounded-xl flex items-center justify-between text-stone-200 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Palette className="w-4 h-4 text-amber-400" />
+                          <span>تخصيص ألوان وتصميم التطبيق</span>
+                        </div>
+                        <span className="text-[10px] text-amber-400/80">مظهر</span>
+                      </button>
+                    )}
 
                     {onOpenSupervisorModal && (
                       <button
@@ -345,6 +380,21 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="py-1">
+                  {onOpenSettingsModal && (
+                    <button
+                      type="button"
+                      id="dropdown-open-appearance-btn"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        onOpenSettingsModal();
+                      }}
+                      className="w-full text-right px-3 py-1.5 hover:bg-stone-700 flex items-center gap-2 text-amber-300 hover:text-amber-200 cursor-pointer"
+                    >
+                      <Palette className="w-3.5 h-3.5 text-amber-400" />
+                      تخصيص ألوان وتصميم التطبيق
+                    </button>
+                  )}
+
                   {onOpenTransferModal && (
                     <button
                       onClick={() => {

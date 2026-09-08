@@ -68,6 +68,15 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
     return students.filter(s => s.status === 'active');
   }, [students]);
 
+  // Pre-indexed map for all revisions by studentId_date for instant multi-day lookup
+  const revisionLookupMap = useMemo(() => {
+    const map = new Map<string, (typeof dailyRevisionRecords)[0]>();
+    for (const r of dailyRevisionRecords) {
+      map.set(`${r.studentId}_${r.date}`, r);
+    }
+    return map;
+  }, [dailyRevisionRecords]);
+
   // Pre-indexed map for today's revisions
   const todayRevisionMap = useMemo(() => {
     const map = new Map<string, (typeof dailyRevisionRecords)[0]>();
@@ -398,6 +407,87 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
+                  </div>
+                </div>
+
+                {/* 7-Days Weekly Schedule Display inside Student Card (عرض بطاقة الطالب بالأيام) */}
+                <div className="pt-2.5 border-t border-stone-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>جدول الورد الأسبوعي بالأيام السبعة:</span>
+                    </span>
+                    <span className="text-[10px] text-stone-400">
+                      انقر على أي يوم لتدوين حالته فوراً
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                    {getWeeklySchedule(student, new Date(selectedDate)).map((dayItem) => {
+                      const dayRec = revisionLookupMap.get(`${student.id}_${dayItem.date}`);
+                      const isSelectedDay = dayItem.date === selectedDate;
+                      const isDone = dayRec?.status === 'completed';
+                      const isPart = dayRec?.status === 'partial';
+                      const isMiss = dayRec?.status === 'missed';
+
+                      return (
+                        <div
+                          key={dayItem.date}
+                          onClick={() => setSelectedDate(dayItem.date)}
+                          className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            isSelectedDay
+                              ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/25 shadow-xs'
+                              : isDone
+                              ? 'bg-emerald-50/40 border-emerald-200 hover:bg-emerald-50'
+                              : isPart
+                              ? 'bg-amber-50/40 border-amber-200 hover:bg-amber-50'
+                              : isMiss
+                              ? 'bg-rose-50/40 border-rose-200 hover:bg-rose-50'
+                              : 'bg-stone-50 hover:bg-stone-100/90 border-stone-200/80'
+                          }`}
+                          title={`تحديد يوم ${dayItem.dayName} (${dayItem.date})`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-[11px] font-bold ${isSelectedDay ? 'text-emerald-900' : 'text-stone-800'}`}>
+                              {dayItem.dayName}
+                            </span>
+                            {dayItem.isCircleDay && (
+                              <span className="text-[9px] bg-emerald-700 text-white px-1 py-0.2 rounded font-bold" title="جلسة حلقة المسجد">
+                                حلقة
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-[10px] text-stone-600 line-clamp-2 leading-tight font-medium" title={dayItem.description}>
+                            {dayItem.description}
+                          </div>
+
+                          {/* Day Status Pill */}
+                          <div className="pt-1 border-t border-stone-200/50 flex items-center justify-center">
+                            {isDone ? (
+                              <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>مكتمل</span>
+                              </span>
+                            ) : isPart ? (
+                              <span className="text-[10px] font-bold text-amber-700 flex items-center gap-0.5">
+                                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                <span>جزئي</span>
+                              </span>
+                            ) : isMiss ? (
+                              <span className="text-[10px] font-bold text-rose-700 flex items-center gap-0.5">
+                                <X className="w-3 h-3 text-rose-600" />
+                                <span>لم يراجع</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-stone-400 font-medium">
+                                لم يُسجل
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

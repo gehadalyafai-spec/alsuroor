@@ -12,7 +12,11 @@ import {
   Check, UserCheck, RefreshCw, MessageSquare
 } from 'lucide-react';
 
-export const StudentPortalView: React.FC = () => {
+interface StudentPortalViewProps {
+  onLogout?: () => void;
+}
+
+export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }) => {
   const { 
     students, 
     activeStudentId, 
@@ -27,6 +31,13 @@ export const StudentPortalView: React.FC = () => {
     syncStatus
   } = useQuran();
   const { user } = useAuth();
+
+  const handleLogout = () => {
+    logoutStudent();
+    if (onLogout) {
+      onLogout();
+    }
+  };
 
   const student = students.find(s => s.id === activeStudentId);
 
@@ -57,7 +68,7 @@ export const StudentPortalView: React.FC = () => {
           <h2 className="text-xl font-bold text-stone-800 mb-2">لم يتم تحديد حساب الطالب</h2>
           <p className="text-sm text-stone-600 mb-6">يرجى تسجيل الدخول برمز الطالب للوصول إلى بوابتك الخاصة.</p>
           <button
-            onClick={logoutStudent}
+            onClick={handleLogout}
             className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-medium rounded-xl transition-colors cursor-pointer"
           >
             العودة لصفحة تسجيل الدخول
@@ -187,7 +198,7 @@ export const StudentPortalView: React.FC = () => {
             </button>
 
             <button
-              onClick={logoutStudent}
+              onClick={handleLogout}
               id="student-logout-btn"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium border border-stone-700 transition-colors cursor-pointer"
               title="الخروج أو العودة لحساب المشرف"

@@ -9,9 +9,10 @@ import {
 
 interface AuthViewProps {
   onContinueAsGuest?: () => void;
+  initialUserType?: 'supervisor' | 'student';
 }
 
-export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest }) => {
+export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest, initialUserType = 'supervisor' }) => {
   const { 
     user,
     isAuthorizedSupervisor,
@@ -27,7 +28,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest }) => {
   const { students, loginAsStudent } = useQuran();
 
   // Primary portal selection: supervisor vs student
-  const [userType, setUserType] = useState<'supervisor' | 'student'>('supervisor');
+  const [userType, setUserType] = useState<'supervisor' | 'student'>(initialUserType);
 
   // Supervisor auth state
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');

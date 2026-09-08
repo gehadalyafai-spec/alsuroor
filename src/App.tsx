@@ -21,6 +21,8 @@ import { StudentPortalView } from './components/StudentPortalView';
 import { StudentSubmissionsModal } from './components/StudentSubmissionsModal';
 import { SupervisorManagementModal } from './components/SupervisorManagementModal';
 import { AiAssistantModal } from './components/AiAssistantModal';
+import { AppSettingsModal } from './components/AppSettingsModal';
+import { ThemeProvider } from './context/ThemeContext';
 import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp } from 'lucide-react';
 
 function AppContent() {
@@ -39,7 +41,9 @@ function AppContent() {
   const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
   const [isSupervisorModalOpen, setIsSupervisorModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
+  const [preferStudentLogin, setPreferStudentLogin] = useState(false);
 
   // Loading Screen while Firebase Auth initializes
   if (loadingAuth) {
@@ -64,17 +68,34 @@ function AppContent() {
 
   // If in Student Role, display the dedicated Student Portal View
   if (activeRole === 'student') {
-    return <StudentPortalView />;
+    return (
+      <StudentPortalView 
+        onLogout={() => {
+          setGuestMode(false);
+          setPreferStudentLogin(true);
+        }} 
+      />
+    );
   }
 
   // If user is logged in but NOT an authorized supervisor, block supervisor access and show the auth screen
   if (user && !isAuthorizedSupervisor) {
-    return <AuthView onContinueAsGuest={() => setGuestMode(true)} />;
+    return (
+      <AuthView 
+        onContinueAsGuest={() => setGuestMode(true)} 
+        initialUserType={preferStudentLogin ? 'student' : 'supervisor'} 
+      />
+    );
   }
 
   // If user is not authenticated and has not chosen guest mode, present the login/registration view
   if (!user && !guestMode) {
-    return <AuthView onContinueAsGuest={() => setGuestMode(true)} />;
+    return (
+      <AuthView 
+        onContinueAsGuest={() => setGuestMode(true)} 
+        initialUserType={preferStudentLogin ? 'student' : 'supervisor'} 
+      />
+    );
   }
 
   return (
@@ -87,6 +108,7 @@ function AppContent() {
         onOpenSubmissionsModal={() => setIsSubmissionsModalOpen(true)}
         onOpenSupervisorModal={() => setIsSupervisorModalOpen(true)}
         onOpenAiModal={() => setIsAiModalOpen(true)}
+        onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
       />
 
       {/* Pending Student Submissions Alert Banner */}
@@ -270,16 +292,24 @@ function AppContent() {
         onClose={() => setIsAiModalOpen(false)}
         defaultStudentId={selectedStudentId}
       />
+
+      {/* App Appearance & Theme Settings Modal */}
+      <AppSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <QuranProvider>
-        <AppContent />
-      </QuranProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <QuranProvider>
+          <AppContent />
+        </QuranProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

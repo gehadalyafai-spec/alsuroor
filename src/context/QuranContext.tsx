@@ -1353,6 +1353,15 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logoutStudent = () => {
     setActiveStudentId(null);
     setActiveRole('supervisor');
+    try {
+      localStorage.removeItem(STORAGE_KEY + '_activeStudentId');
+      localStorage.removeItem(STORAGE_KEY + '_activeRole');
+      localStorage.removeItem(STORAGE_KEY + '_studentSupervisorUid');
+      localStorage.removeItem(STORAGE_KEY + '_studentSupervisorEmail');
+      localStorage.removeItem('quran_guest_mode');
+    } catch {
+      // ignore
+    }
   };
 
   const switchToStudentView = (studentId: string) => {
