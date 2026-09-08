@@ -498,8 +498,17 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Also listen to central shared circle
       const centralDocRef = doc(db, 'circles', 'central_main_circle');
       unsubCentral = onSnapshot(centralDocRef, (snap) => {
-        if (snap.exists() && (!studentSupervisorUid || studentsRef.current.length === 0)) {
-          applyCircleData(snap.data());
+        if (snap.exists()) {
+          const centralData = snap.data();
+          if (!studentSupervisorUid || studentsRef.current.length === 0) {
+            applyCircleData(centralData);
+          } else if (Array.isArray(centralData.students)) {
+            const myStudentInCentral = centralData.students.find((s: any) => s.id === activeStudentId);
+            const myCurrent = studentsRef.current.find(s => s.id === activeStudentId);
+            if (myStudentInCentral && myCurrent && (myStudentInCentral.currentRub > myCurrent.currentRub || myStudentInCentral.completedRubCount > myCurrent.completedRubCount)) {
+              applyCircleData(centralData);
+            }
+          }
         }
       }, (err) => {
         handleFirestoreError(err);
@@ -650,7 +659,36 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (dataToLoad.students && Array.isArray(dataToLoad.students)) {
             const loadedStudents = filterOutLegacyMocks(dataToLoad.students, LEGACY_MOCK_STUDENT_IDS);
             const uniqueLoaded = ensureAllStudentsHaveUniqueCodes(loadedStudents);
-            setStudents(uniqueLoaded);
+            
+            // Intelligent Progress Preservation:
+            // Ensure local progress (currentRub, completedRubCount) isn't reverted by older cloud snapshot
+            const localStudents = studentsRef.current || [];
+            let hadLocalAdvancement = false;
+            const mergedStudents = uniqueLoaded.map(cloudStu => {
+              const localMatch = localStudents.find(s => s.id === cloudStu.id);
+              if (localMatch) {
+                const effectiveRub = Math.max(cloudStu.currentRub || 1, localMatch.currentRub || 1);
+                const effectiveCompleted = Math.max(cloudStu.completedRubCount || 0, localMatch.completedRubCount || 0);
+                if (effectiveRub > (cloudStu.currentRub || 1) || effectiveCompleted > (cloudStu.completedRubCount || 0)) {
+                  hadLocalAdvancement = true;
+                }
+                return {
+                  ...cloudStu,
+                  currentRub: effectiveRub,
+                  completedRubCount: effectiveCompleted,
+                };
+              }
+              return cloudStu;
+            });
+
+            setStudents(mergedStudents);
+            studentsRef.current = mergedStudents;
+
+            if (hadLocalAdvancement && user && activeRole !== 'student') {
+              setTimeout(() => {
+                persistToCloud(mergedStudents);
+              }, 600);
+            }
           }
           if (dataToLoad.sessionRecords && Array.isArray(dataToLoad.sessionRecords)) {
             const loadedSessions = filterOutLegacyMocks(dataToLoad.sessionRecords, LEGACY_MOCK_SESSION_IDS);
@@ -710,19 +748,27 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [students, sessionRecords, dailyRevisionRecords]);
 
   // Cloud saving helper (saves to user personal path and central circle)
-  const persistToCloud = useCallback(async () => {
+  const persistToCloud = useCallback(async (
+    explicitStudents?: Student[],
+    explicitSessions?: SessionRecord[],
+    explicitRevisions?: DailyRevisionRecord[]
+  ) => {
     if (isQuotaExceeded()) {
       setSyncStatus('synced');
       return;
     }
-    if (!user || activeRole === 'student' || !isInitialLoadDoneRef.current || isLoadingCloud) return;
+    if (!user || activeRole === 'student' || (!isInitialLoadDoneRef.current && !explicitStudents) || isLoadingCloud) return;
     setSyncStatus('saving');
     try {
-      const uniqueStudents = ensureAllStudentsHaveUniqueCodes(students);
+      const targetStudents = explicitStudents || studentsRef.current || students;
+      const targetSessions = explicitSessions || sessionRecords;
+      const targetRevisions = explicitRevisions || dailyRevisionRecords;
+      const uniqueStudents = ensureAllStudentsHaveUniqueCodes(targetStudents);
+
       const payload = {
         students: uniqueStudents,
-        sessionRecords,
-        dailyRevisionRecords,
+        sessionRecords: targetSessions,
+        dailyRevisionRecords: targetRevisions,
         lastState: {
           selectedDate: selectedDate || '',
           activeTab: activeTab || 'sessions',
@@ -940,13 +986,14 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let updatedSessions = [...sessionRecords];
     let updatedRevisions = [...dailyRevisionRecords];
 
+    const studentObj = students.find(s => s.id === sub.studentId);
+
     // 1. If daily revision, apply official revision record
     if (sub.type === 'daily_revision' && sub.revisionData) {
       const dateObj = new Date(sub.date);
       const dayOfWeek = isNaN(dateObj.getDay()) ? 0 : dateObj.getDay();
       const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
       const dayName = dayNames[dayOfWeek];
-      const studentObj = students.find(s => s.id === sub.studentId);
       const assignment = getDailyRevisionAssignment(studentObj?.currentRub || 1, dayOfWeek, dayOfWeek, studentObj);
 
       const existingIndex = updatedRevisions.findIndex(r => r.studentId === sub.studentId && r.date === sub.date);
@@ -971,13 +1018,27 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updatedRevisions = [record, ...updatedRevisions];
       }
       setDailyRevisionRecords(updatedRevisions);
+
+      // If advance was checked or revision is completed, advance the student by 1 quarter
+      const shouldAdvance = options?.advanceToNext ?? (sub.revisionData.status === 'completed');
+      if (shouldAdvance && sub.revisionData.status !== 'missed' && studentObj) {
+        const advanceCount = options?.advanceCount ?? 1;
+        const nextRub = Math.min(240, studentObj.currentRub + advanceCount);
+        updatedStudents = updatedStudents.map(s => {
+          if (s.id !== sub.studentId) return s;
+          return {
+            ...s,
+            currentRub: nextRub,
+            completedRubCount: Math.max(s.completedRubCount, s.currentRub),
+          };
+        });
+      }
     }
 
     // 2. If session recitation, apply official session record
     if (sub.type === 'session' && sub.sessionData) {
       const grade = options?.grade || sub.sessionData.grade || 'very_good';
       const advance = options?.advanceToNext ?? (sub.sessionData.advanceToNext ?? (grade !== 'needs_repeat' && grade !== 'absent'));
-      const studentObj = students.find(s => s.id === sub.studentId);
 
       const dateObj = new Date(sub.date);
       const dayIndex = isNaN(dateObj.getDay()) ? 0 : dateObj.getDay();
@@ -1002,10 +1063,9 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updatedSessions = [newRecord, ...updatedSessions];
       setSessionRecords(updatedSessions);
 
-      // If passed and advance is approved, increment the student's target quarter (supporting multiple rubs if recited)
+      // If passed and advance is approved, increment the student's target quarter (1 quarter advance per session)
       if (advance && grade !== 'needs_repeat' && grade !== 'absent' && studentObj) {
-        const recitedCount = sub.sessionData.recitedRubs?.length || 1;
-        const advanceCount = options?.advanceCount ?? Math.max(1, recitedCount);
+        const advanceCount = options?.advanceCount ?? 1;
         const nextRub = Math.min(240, studentObj.currentRub + advanceCount);
         updatedStudents = updatedStudents.map(s => {
           if (s.id !== sub.studentId) return s;
@@ -1015,9 +1075,12 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             completedRubCount: Math.max(s.completedRubCount, s.currentRub),
           };
         });
-        setStudents(ensureAllStudentsHaveUniqueCodes(updatedStudents));
       }
     }
+
+    const finalStudents = ensureAllStudentsHaveUniqueCodes(updatedStudents);
+    setStudents(finalStudents);
+    studentsRef.current = finalStudents;
 
     // 3. Mark submission as approved
     const updatedSub: StudentSubmission = {
@@ -1027,8 +1090,20 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       reviewedAt: new Date().toISOString(),
     };
 
-    setRawSubmissions(prev => prev.map(s => s.id === submissionId ? updatedSub : s));
+    const updatedRaw = rawSubmissions.map(s => s.id === submissionId ? updatedSub : s);
+    setRawSubmissions(updatedRaw);
 
+    // Save to localStorage immediately so no state is lost on fast reload
+    try {
+      localStorage.setItem(STORAGE_KEY + '_students', JSON.stringify(finalStudents));
+      localStorage.setItem(STORAGE_KEY + '_sessions', JSON.stringify(updatedSessions));
+      localStorage.setItem(STORAGE_KEY + '_revisions', JSON.stringify(updatedRevisions));
+      localStorage.setItem(STORAGE_KEY + '_submissions', JSON.stringify(updatedRaw));
+    } catch (e) {
+      console.warn('Immediate localStorage write warning:', e);
+    }
+
+    // 4. PERSIST DIRECTLY AND IMMEDIATELY TO FIRESTORE
     if (!isQuotaExceeded()) {
       try {
         await safeSetDoc(doc(db, 'submissions', submissionId), updatedSub, { merge: true });
@@ -1036,6 +1111,10 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         handleFirestoreError(err);
       }
     }
+
+    // Update the circle data in Firestore immediately!
+    // This synchronizes the teacher's cloud document, mirrors to central circle, and updates student_registry
+    await persistToCloud(finalStudents, updatedSessions, updatedRevisions);
   };
 
   const approveAllPendingSubmissions = async () => {

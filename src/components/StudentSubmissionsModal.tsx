@@ -48,7 +48,10 @@ export const StudentSubmissionsModal: React.FC<StudentSubmissionsModalProps> = (
     const grade = gradeDrafts[sub.id] || sub.sessionData?.grade || 'very_good';
     const mistakesCount = mistakesDrafts[sub.id] ?? (sub.sessionData?.mistakesCount || 0);
     const hesitationsCount = hesitationsDrafts[sub.id] ?? (sub.sessionData?.hesitationsCount || 0);
-    const advanceToNext = advanceDrafts[sub.id] ?? (sub.sessionData?.advanceToNext ?? (grade !== 'needs_repeat' && grade !== 'absent'));
+    const defaultAdvance = sub.type === 'session' 
+      ? (sub.sessionData?.advanceToNext ?? (grade !== 'needs_repeat' && grade !== 'absent'))
+      : (sub.revisionData?.status === 'completed');
+    const advanceToNext = advanceDrafts[sub.id] ?? defaultAdvance;
 
     try {
       await approveSubmission(sub.id, {
@@ -428,6 +431,24 @@ export const StudentSubmissionsModal: React.FC<StudentSubmissionsModalProps> = (
                             />
                             <label htmlFor={`adv-${sub.id}`} className="text-xs font-bold text-emerald-800 cursor-pointer">
                               نقل الطالب للربع التالي (الربع {((student?.currentRub || 1) % 240) + 1}) بعد الاعتماد
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* If daily revision: option to advance student to next rub upon approval */}
+                      {sub.type === 'daily_revision' && (
+                        <div className="bg-white p-3 rounded-xl border border-stone-200 text-xs">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`adv-rev-${sub.id}`}
+                              checked={advanceDrafts[sub.id] ?? true}
+                              onChange={(e) => setAdvanceDrafts(prev => ({ ...prev, [sub.id]: e.target.checked }))}
+                              className="w-4 h-4 text-emerald-600 rounded-md cursor-pointer"
+                            />
+                            <label htmlFor={`adv-rev-${sub.id}`} className="text-xs font-bold text-emerald-800 cursor-pointer">
+                              نقل الطالب للربع التالي (الربع {((student?.currentRub || 1) % 240) + 1}) بعد اعتماد الورد اليومي
                             </label>
                           </div>
                         </div>
