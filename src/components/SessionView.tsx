@@ -3,6 +3,8 @@ import { useQuran } from '../context/QuranContext';
 import { 
   getRequiredRecitationForSession, 
   getDailyRevisionAssignment, 
+  getSessionWirdIntervalDays,
+  SessionIntervalDay,
   ARABIC_DAYS,
   formatQuranProgress,
   formatRemainingQuranProgress,
@@ -15,7 +17,7 @@ import {
   Calendar, CheckCircle2, AlertCircle, Award, 
   ChevronRight, ChevronLeft, Search, Check, Sparkles, 
   Users, UserCheck, UserX, Clock, Star, BookOpen, Share2, 
-  Copy, Filter, Edit3, ArrowLeftRight, CheckSquare, MessageSquare
+  Filter, Edit3, CheckSquare, Layers, HelpCircle
 } from 'lucide-react';
 
 interface SessionViewProps {
@@ -42,6 +44,9 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   const [activeGradingStudent, setActiveGradingStudent] = useState<Student | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Per-student active viewed revision day inside the card (studentId -> dateStr)
+  const [studentActiveWirdDate, setStudentActiveWirdDate] = useState<Record<string, string>>({});
+
   // Local attendance state cache per date
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceType>>(() => {
     try {
@@ -59,7 +64,6 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
       if (saved) {
         setAttendanceMap(JSON.parse(saved));
       } else {
-        // Infer from session records
         const inferred: Record<string, AttendanceType> = {};
         for (const r of sessionRecords) {
           if (r.date === selectedDate) {
@@ -80,7 +84,6 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
       localStorage.setItem(`quran_attendance_${selectedDate}`, JSON.stringify(updated));
     } catch {}
 
-    // If marked absent, optionally record session as absent
     if (status === 'absent') {
       recordSessionResult({
         studentId,
@@ -106,7 +109,12 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
     } catch {}
   };
 
-  // Grading form state
+  // Session Interval Calculation (Sunday: Thu, Fri, Sat, Sun / Wednesday: Mon, Tue, Wed)
+  const sessionInterval = useMemo(() => {
+    return getSessionWirdIntervalDays(selectedDate);
+  }, [selectedDate]);
+
+  // Grading modal form state
   const [grade, setGrade] = useState<SessionGrade>('perfect');
   const [mistakes, setMistakes] = useState<number>(0);
   const [hesitations, setHesitations] = useState<number>(0);
@@ -120,29 +128,28 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   const dayName = ARABIC_DAYS[dayOfWeek];
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const latestRecordedDate = useMemo(() => {
-    if (sessionRecords.length === 0) return null;
-    const dates = Array.from(new Set(sessionRecords.map(r => r.date))).sort().reverse();
-    return dates[0] || null;
-  }, [sessionRecords]);
 
-  // Quick navigation to next/previous circle day
+  // Quick navigation helpers
   const changeDateByDays = (days: number) => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + days);
     setSelectedDate(d.toISOString().split('T')[0]);
   };
 
-  const jumpToNextCircleDay = () => {
+  const jumpToSunday = () => {
     const d = new Date(selectedDate);
-    for (let i = 1; i <= 7; i++) {
-      const next = new Date(d);
-      next.setDate(d.getDate() + i);
-      if (next.getDay() === 0 || next.getDay() === 3) {
-        setSelectedDate(next.toISOString().split('T')[0]);
-        break;
-      }
-    }
+    const dow = d.getDay();
+    const diff = (7 - dow) % 7 || 7;
+    d.setDate(d.getDate() + (dow === 0 ? 0 : diff));
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const jumpToWednesday = () => {
+    const d = new Date(selectedDate);
+    const dow = d.getDay();
+    const diff = (3 - dow + 7) % 7 || 7;
+    d.setDate(d.getDate() + (dow === 3 ? 0 : diff));
+    setSelectedDate(d.toISOString().split('T')[0]);
   };
 
   const activeStudents = useMemo(() => {
@@ -160,31 +167,38 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
     return map;
   }, [sessionRecords, selectedDate]);
 
-  // Pre-index daily revisions for selectedDate
-  const currentDayRevisionsMap = useMemo(() => {
+  // Map of daily revisions indexed by `${studentId}_${date}`
+  const revisionsLookup = useMemo(() => {
     const map = new Map<string, (typeof dailyRevisionRecords)[0]>();
     for (const r of dailyRevisionRecords) {
-      if (r.date === selectedDate) {
-        map.set(r.studentId, r);
-      }
+      map.set(`${r.studentId}_${r.date}`, r);
     }
     return map;
-  }, [dailyRevisionRecords, selectedDate]);
+  }, [dailyRevisionRecords]);
 
   // Filtered students list
   const filteredStudents = useMemo(() => {
     return activeStudents.filter(s => {
-      // Search text
       if (searchQuery.trim()) {
         const matchesName = s.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesPhone = s.phone.includes(searchQuery) || s.parentPhone.includes(searchQuery);
         if (!matchesName && !matchesPhone) return false;
       }
 
-      // Status filter
       const sessionRecord = currentDayRecordsMap.get(s.id);
-      const revisionRecord = currentDayRevisionsMap.get(s.id);
       const attendance = attendanceMap[s.id] || (sessionRecord?.grade === 'absent' ? 'absent' : 'unmarked');
+
+      // Check interval revisions
+      let allIntervalDone = true;
+      let anyIntervalDone = false;
+      for (const day of sessionInterval.intervalDays) {
+        const rev = revisionsLookup.get(`${s.id}_${day.date}`);
+        if (rev?.status === 'completed') {
+          anyIntervalDone = true;
+        } else {
+          allIntervalDone = false;
+        }
+      }
 
       if (filterMode === 'pending_recitation') {
         return !sessionRecord || sessionRecord.grade === 'needs_repeat';
@@ -193,10 +207,10 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
         return !!sessionRecord && sessionRecord.grade !== 'absent';
       }
       if (filterMode === 'wird_done') {
-        return revisionRecord?.status === 'completed';
+        return allIntervalDone || anyIntervalDone;
       }
       if (filterMode === 'wird_pending') {
-        return !revisionRecord || revisionRecord.status === 'missed' || revisionRecord.status === 'pending';
+        return !allIntervalDone;
       }
       if (filterMode === 'absent') {
         return attendance === 'absent' || sessionRecord?.grade === 'absent';
@@ -204,7 +218,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
 
       return true;
     });
-  }, [activeStudents, searchQuery, filterMode, currentDayRecordsMap, currentDayRevisionsMap, attendanceMap]);
+  }, [activeStudents, searchQuery, filterMode, currentDayRecordsMap, revisionsLookup, sessionInterval, attendanceMap]);
 
   // Open grading modal
   const startGrading = (student: Student) => {
@@ -260,9 +274,16 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
     saveAttendance(student.id, 'present');
   };
 
-  // Quick 1-click revision update
-  const handleQuickWird = (studentId: string, status: RevisionStatus, rating: number = 5) => {
-    recordDailyRevision(studentId, selectedDate, status, '', rating);
+  // Quick 1-click revision update for a specific date
+  const handleQuickWird = (studentId: string, targetDate: string, status: RevisionStatus, rating: number = 5) => {
+    recordDailyRevision(studentId, targetDate, status, '', rating);
+  };
+
+  // Bulk mark ALL days in this session interval as completed for a student
+  const handleMarkAllIntervalDaysCompleted = (studentId: string) => {
+    sessionInterval.intervalDays.forEach(day => {
+      recordDailyRevision(studentId, day.date, 'completed', 'اعتماد جماعي للفترة', 5);
+    });
   };
 
   const handleCopyWhatsApp = (student: Student, e: React.MouseEvent) => {
@@ -273,16 +294,8 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Aggregate stats
+  // Aggregate counts
   const recitedCount = currentDayRecordsMap.size;
-  const wirdDoneCount = useMemo(() => {
-    let count = 0;
-    for (const s of activeStudents) {
-      if (currentDayRevisionsMap.get(s.id)?.status === 'completed') count++;
-    }
-    return count;
-  }, [activeStudents, currentDayRevisionsMap]);
-
   const presentCount = useMemo(() => {
     return activeStudents.filter(s => attendanceMap[s.id] === 'present').length;
   }, [activeStudents, attendanceMap]);
@@ -290,7 +303,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   return (
     <div className="space-y-6 max-w-6xl mx-auto px-4 py-6" id="session-unified-view-container">
       {/* Top Banner: Unified Session & Wird Dashboard */}
-      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-emerald-700/50">
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-950 to-stone-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-emerald-700/50">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -302,63 +315,100 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
               </h2>
               {isCircleDay ? (
                 <span className="text-xs bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 font-semibold px-3 py-0.5 rounded-full">
-                  يوم حلقة معتمد ({dayName})
+                  جلسة حلقة معتمدة: يوم {dayName} ({selectedDate})
                 </span>
               ) : (
                 <span className="text-xs bg-amber-500/30 text-amber-200 border border-amber-400/40 font-semibold px-3 py-0.5 rounded-full">
-                  يوم متابعة ورد ({dayName})
+                  متابعة يوم: {dayName} ({selectedDate})
                 </span>
               )}
             </div>
-            <p className="text-xs text-emerald-100/90 leading-relaxed max-w-2xl">
-              تم دمج التسميع (4 أرباع الحفظ الجديد والربط) مع الورد اليومي (مراجعة 3 أجزاء) وتحضير الطلاب في بطاقة واحدة تفاعلية وسلسة لتسهيل إدارة الحلقة دون التنقل بين الصفحات.
-            </p>
+
+            {/* Clear explanation of the interval rules */}
+            <div className="bg-black/30 border border-emerald-500/30 rounded-2xl p-3 text-xs text-emerald-100 leading-relaxed max-w-3xl flex items-start gap-2.5 mt-2">
+              <Sparkles className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-200">
+                  {sessionInterval.isSundaySession ? (
+                    <span>
+                      📅 <strong>فترة جلسة الأحد:</strong> تسميع الربع الجديد مع 3 أرباع ربط، ومتابعة الورد اليومي لـ <strong>4 أيام (الخميس، الجمعة، السبت، الأحد)</strong>.
+                    </span>
+                  ) : (
+                    <span>
+                      📅 <strong>فترة جلسة الأربعاء:</strong> تسميع الربع الجديد مع 3 أرباع ربط، ومتابعة الورد اليومي لـ <strong>3 أيام (الإثنين، الثلاثاء، الأربعاء)</strong>.
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-emerald-200/80 mt-1">
+                  يمكنك استعراض ورد كل يوم من أيام الفترة، ورصد الإنجاز بنقرة زر واحدة أو اعتماد كامل الفترة للطالب مباشرة.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Quick Date Navigator */}
-          <div className="flex flex-wrap items-center gap-2 bg-black/30 p-2 rounded-2xl border border-white/10 shrink-0">
-            <button
-              onClick={() => changeDateByDays(-1)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors cursor-pointer"
-              title="اليوم السابق"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-2 rounded-2xl border border-white/10">
+              <button
+                onClick={() => changeDateByDays(-1)}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors cursor-pointer"
+                title="اليوم السابق"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
 
-            <div className="flex items-center gap-1.5">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="text-xs font-bold px-3 py-2 border border-white/20 rounded-xl bg-black/40 text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="text-xs font-bold px-3 py-2 border border-white/20 rounded-xl bg-black/60 text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               />
+
+              <button
+                onClick={() => changeDateByDays(1)}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors cursor-pointer"
+                title="اليوم التالي"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {selectedDate !== todayStr && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(todayStr)}
+                  className="text-xs bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold px-2.5 py-2 rounded-xl transition-colors cursor-pointer shadow-xs"
+                >
+                  اليوم
+                </button>
+              )}
             </div>
 
-            <button
-              onClick={() => changeDateByDays(1)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors cursor-pointer"
-              title="اليوم التالي"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {selectedDate !== todayStr && (
+            {/* Quick Sunday / Wednesday Session Switchers */}
+            <div className="flex items-center gap-1.5 justify-end">
               <button
                 type="button"
-                onClick={() => setSelectedDate(todayStr)}
-                className="text-xs bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer shadow-xs"
+                onClick={jumpToSunday}
+                className={`text-[11px] px-3 py-1 rounded-xl font-bold transition-all border cursor-pointer ${
+                  sessionInterval.isSundaySession
+                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
+                    : 'bg-white/10 hover:bg-white/20 text-emerald-200 border-white/10'
+                }`}
               >
-                اليوم
+                🕌 جلسة الأحد (4 أيام ورد)
               </button>
-            )}
 
-            <button
-              type="button"
-              onClick={jumpToNextCircleDay}
-              className="text-xs bg-white/10 hover:bg-white/20 text-white font-semibold px-3 py-2 rounded-xl transition-colors cursor-pointer hidden sm:block"
-            >
-              الحلقة القادمة
-            </button>
+              <button
+                type="button"
+                onClick={jumpToWednesday}
+                className={`text-[11px] px-3 py-1 rounded-xl font-bold transition-all border cursor-pointer ${
+                  sessionInterval.isWednesdaySession
+                    ? 'bg-teal-600 text-white border-teal-400 shadow-xs'
+                    : 'bg-white/10 hover:bg-white/20 text-teal-200 border-white/10'
+                }`}
+              >
+                🕌 جلسة الأربعاء (3 أيام ورد)
+              </button>
+            </div>
           </div>
         </div>
 
@@ -375,18 +425,18 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
             </div>
             <div className="flex items-center gap-1.5 text-amber-200">
               <Award className="w-4 h-4 text-amber-300" />
-              <span>تم تسميعهم: <strong className="text-white font-bold">{recitedCount}</strong></span>
+              <span>تم تسميعهم اليوم: <strong className="text-white font-bold">{recitedCount}</strong></span>
             </div>
             <div className="flex items-center gap-1.5 text-blue-200">
-              <CheckSquare className="w-4 h-4 text-blue-300" />
-              <span>أتموا الورد: <strong className="text-white font-bold">{wirdDoneCount}</strong></span>
+              <Layers className="w-4 h-4 text-blue-300" />
+              <span>أيام الورد المعروضة: <strong className="text-white font-bold">{sessionInterval.intervalDays.length} أيام ({sessionInterval.intervalDays.map(d => d.dayName).join('، ')})</strong></span>
             </div>
           </div>
 
           <button
             type="button"
             onClick={handleMarkAllPresent}
-            className="self-start sm:self-auto text-xs font-bold bg-emerald-600/80 hover:bg-emerald-500 text-white border border-emerald-400/50 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="self-start sm:self-auto text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             <UserCheck className="w-3.5 h-3.5" />
             <span>تحضير جميع الطلاب كـ حاضرين</span>
@@ -400,7 +450,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
           <Search className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="بحث بالاسم أو رقم الهاتف..."
+            placeholder="بحث باسم الطالب أو رقم الهاتف..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pr-9 pl-4 py-2.5 text-xs bg-white border border-stone-200 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
@@ -454,7 +504,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                 : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
             }`}
           >
-            تم الورد ({wirdDoneCount})
+            أتموا الورد
           </button>
 
           <button
@@ -477,17 +527,37 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
           const plan = getRequiredRecitationForSession(student.currentRub);
           const newQuarter = getQuarterByNumber(plan.newRub);
           const sessionRecord = currentDayRecordsMap.get(student.id);
-          const revisionRecord = currentDayRevisionsMap.get(student.id);
-          const todayWird = getDailyRevisionAssignment(student.currentRub, dayOfWeek, 0, student);
           const attendance = attendanceMap[student.id] || (sessionRecord?.grade === 'absent' ? 'absent' : 'unmarked');
           const isCopied = copiedId === student.id;
 
-          // Check pending submissions for this student on this date
+          // Which interval day is currently selected/active inside this student's card
+          const currentViewingWirdDate = studentActiveWirdDate[student.id] || selectedDate;
+          const activeIntervalDay = sessionInterval.intervalDays.find(d => d.date === currentViewingWirdDate) || sessionInterval.intervalDays[sessionInterval.intervalDays.length - 1];
+          
+          // Calculate assignment for the active viewing day
+          const wirdAssignment = getDailyRevisionAssignment(
+            student.currentRub, 
+            activeIntervalDay.dayOfWeek, 
+            activeIntervalDay.order - 1, 
+            student
+          );
+
+          // Get record for active viewing day
+          const activeDayRevisionRecord = revisionsLookup.get(`${student.id}_${activeIntervalDay.date}`);
+
+          // Count completed interval days
+          let completedIntervalDaysCount = 0;
+          sessionInterval.intervalDays.forEach(day => {
+            const r = revisionsLookup.get(`${student.id}_${day.date}`);
+            if (r?.status === 'completed') completedIntervalDaysCount++;
+          });
+
+          // Check pending submissions for this student
           const pendingSessionSub = submissions.find(
             s => s.studentId === student.id && s.type === 'session' && s.status === 'pending' && s.date === selectedDate
           );
           const pendingWirdSub = submissions.find(
-            s => s.studentId === student.id && s.type === 'daily_revision' && s.status === 'pending' && s.date === selectedDate
+            s => s.studentId === student.id && s.type === 'daily_revision' && s.status === 'pending' && s.date === activeIntervalDay.date
           );
 
           return (
@@ -497,7 +567,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
               className={`bg-white rounded-3xl border transition-all p-4 sm:p-5 shadow-xs flex flex-col gap-4 ${
                 attendance === 'absent'
                   ? 'border-rose-200 bg-rose-50/20'
-                  : sessionRecord && revisionRecord?.status === 'completed'
+                  : sessionRecord && completedIntervalDaysCount === sessionInterval.intervalDays.length
                   ? 'border-emerald-300/90 bg-emerald-50/15 ring-1 ring-emerald-500/20'
                   : 'border-stone-200 hover:border-emerald-300'
               }`}
@@ -580,7 +650,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                 </div>
               </div>
 
-              {/* Card Body: Unified Dual Columns (التسميع + الورد) */}
+              {/* Card Body: Unified Dual Columns (التسميع + الورد اليومي للفترة) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 
                 {/* 1. RIGHT COLUMN: تسميع الحلقة (4 أرباع) */}
@@ -589,7 +659,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
                         <BookOpen className="w-4 h-4 text-emerald-700" />
-                        <span>تسميع جلسة الحلقة ({plan.totalCount} أرباع):</span>
+                        <span>تسميع جلسة يوم {sessionInterval.sessionDayName} ({plan.totalCount} أرباع):</span>
                       </div>
 
                       {/* Recitation Status Badge */}
@@ -728,53 +798,103 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                   </div>
                 </div>
 
-                {/* 2. LEFT COLUMN: ورد المراجعة اليومي (3 أجزاء) */}
+                {/* 2. LEFT COLUMN: ورد المراجعة اليومي لأيام الفترة (الخميس والجمعة والسبت والأحد / الاثنين والثلاثاء والأربعاء) */}
                 <div className="bg-teal-50/50 rounded-2xl border border-teal-200/80 p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
                   <div>
+                    {/* Header & Overall Interval Progress */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-1.5 font-bold text-xs text-teal-950">
                         <CheckSquare className="w-4 h-4 text-teal-700" />
-                        <span>ورد المراجعة اليومي ({todayWird.isCustomWird ? 'مخصص' : 'تلقائي'}):</span>
+                        <span>ورد المراجعة ({sessionInterval.intervalDays.length} أيام):</span>
                       </div>
 
-                      {/* Revision Status Badge */}
-                      {revisionRecord ? (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                          revisionRecord.status === 'completed' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                          revisionRecord.status === 'partial' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                          'bg-rose-100 text-rose-800 border-rose-300'
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          completedIntervalDaysCount === sessionInterval.intervalDays.length
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : completedIntervalDaysCount > 0
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-stone-100 text-stone-600 border-stone-200'
                         }`}>
-                          <CheckCircle2 className="w-3 h-3" />
-                          {revisionRecord.status === 'completed' && '✅ تم الورد'}
-                          {revisionRecord.status === 'partial' && '⚠️ جزئي'}
-                          {revisionRecord.status === 'missed' && '❌ لم يراجع'}
+                          إنجاز: {completedIntervalDaysCount} من {sessionInterval.intervalDays.length} أيام
                         </span>
-                      ) : (
-                        <span className="text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 px-2 py-0.5 rounded-full">
-                          بانتظار التأكيد
-                        </span>
-                      )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAllIntervalDaysCompleted(student.id)}
+                          className="text-[10px] font-bold bg-teal-600 hover:bg-teal-700 text-white px-2 py-0.5 rounded-lg shadow-xs transition-colors cursor-pointer"
+                          title="اعتماد كل أيام الفترة كـ تم الورد"
+                        >
+                          اعتماد الكل
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Wird Details Description Box */}
-                    <div className="bg-white border border-teal-200 rounded-xl p-2.5 space-y-1">
+                    {/* Interactive Multi-Day Interval Tabs Strip */}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 mb-2.5">
+                      {sessionInterval.intervalDays.map((day) => {
+                        const r = revisionsLookup.get(`${student.id}_${day.date}`);
+                        const isSelected = day.date === activeIntervalDay.date;
+                        return (
+                          <button
+                            key={day.date}
+                            type="button"
+                            onClick={() => {
+                              setStudentActiveWirdDate(prev => ({ ...prev, [student.id]: day.date }));
+                            }}
+                            className={`p-1.5 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-teal-700 text-white border-teal-800 shadow-xs ring-1 ring-teal-500'
+                                : 'bg-white hover:bg-stone-50 text-stone-700 border-stone-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[11px] font-bold">{day.dayName}</span>
+                              <span className="text-[10px]">
+                                {r?.status === 'completed' ? '✅' : r?.status === 'partial' ? '⚠️' : r?.status === 'missed' ? '❌' : '⏳'}
+                              </span>
+                            </div>
+                            <div className={`text-[9px] truncate mt-0.5 ${isSelected ? 'text-teal-100' : 'text-stone-400'}`}>
+                              {day.isSessionDay ? 'يوم الجلسة' : day.date.slice(5)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Active Day Details Description Box */}
+                    <div className="bg-white border border-teal-200 rounded-xl p-2.5 space-y-1 shadow-2xs">
                       <div className="flex items-center justify-between text-[11px] font-bold text-stone-800">
-                        <span className="text-teal-900">{todayWird.shortLabel}</span>
-                        <span className="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200 font-semibold">
-                          {todayWird.totalCount} ربعاً
+                        <span className="text-teal-900 flex items-center gap-1">
+                          <span>ورد يوم {activeIntervalDay.dayName} ({activeIntervalDay.date}):</span>
                         </span>
+
+                        {activeDayRevisionRecord ? (
+                          <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${
+                            activeDayRevisionRecord.status === 'completed' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                            activeDayRevisionRecord.status === 'partial' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                            'bg-rose-100 text-rose-800 border-rose-300'
+                          }`}>
+                            {activeDayRevisionRecord.status === 'completed' && '✅ تم'}
+                            {activeDayRevisionRecord.status === 'partial' && '⚠️ جزئي'}
+                            {activeDayRevisionRecord.status === 'missed' && '❌ لم يراجع'}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-stone-400">بانتظار التأكيد</span>
+                        )}
                       </div>
+
                       <p className="text-xs text-stone-700 font-medium leading-relaxed">
-                        {todayWird.description}
+                        {wirdAssignment.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Student Pending Wird Submission Approval */}
+                  {/* Student Pending Submission Approval for this day */}
                   {pendingWirdSub && (
                     <div className="bg-amber-100/90 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
                       <div>
-                        <span className="font-bold text-amber-950 block">📖 أرسل الطالب تأكيد إنجاز الورد</span>
+                        <span className="font-bold text-amber-950 block">📖 أرسل الطالب تأكيد إنجاز ورد يوم {activeIntervalDay.dayName}</span>
                         {pendingWirdSub.revisionData?.notes && (
                           <span className="text-[11px] text-stone-600 block">«{pendingWirdSub.revisionData.notes}»</span>
                         )}
@@ -790,26 +910,26 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                     </div>
                   )}
 
-                  {/* 1-Click Quick Wird Status Buttons */}
+                  {/* 1-Click Quick Wird Status for the Active Day */}
                   <div className="pt-2 border-t border-teal-200/60 flex items-center justify-between gap-1.5 flex-wrap">
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => handleQuickWird(student.id, 'completed', 5)}
+                        onClick={() => handleQuickWird(student.id, activeIntervalDay.date, 'completed', 5)}
                         className={`text-[10px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                          revisionRecord?.status === 'completed'
+                          activeDayRevisionRecord?.status === 'completed'
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                             : 'bg-white hover:bg-emerald-50 text-emerald-800 border-stone-200'
                         }`}
                       >
-                        ✅ تم الورد
+                        ✅ تم ورد {activeIntervalDay.dayName}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => handleQuickWird(student.id, 'partial', 3)}
+                        onClick={() => handleQuickWird(student.id, activeIntervalDay.date, 'partial', 3)}
                         className={`text-[10px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                          revisionRecord?.status === 'partial'
+                          activeDayRevisionRecord?.status === 'partial'
                             ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                             : 'bg-white hover:bg-amber-50 text-amber-800 border-stone-200'
                         }`}
@@ -819,9 +939,9 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
 
                       <button
                         type="button"
-                        onClick={() => handleQuickWird(student.id, 'missed', 1)}
+                        onClick={() => handleQuickWird(student.id, activeIntervalDay.date, 'missed', 1)}
                         className={`text-[10px] font-bold px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
-                          revisionRecord?.status === 'missed'
+                          activeDayRevisionRecord?.status === 'missed'
                             ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                             : 'bg-white hover:bg-rose-50 text-rose-800 border-stone-200'
                         }`}
@@ -830,17 +950,17 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                       </button>
                     </div>
 
-                    {/* Star rating if completed */}
-                    {revisionRecord?.status === 'completed' && (
+                    {/* Star rating for active day */}
+                    {activeDayRevisionRecord?.status === 'completed' && (
                       <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
                             key={star}
                             type="button"
-                            onClick={() => handleQuickWird(student.id, 'completed', star)}
+                            onClick={() => handleQuickWird(student.id, activeIntervalDay.date, 'completed', star)}
                             className="text-amber-400 hover:text-amber-500 cursor-pointer"
                           >
-                            <Star className={`w-3.5 h-3.5 ${star <= (revisionRecord.rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-stone-300'}`} />
+                            <Star className={`w-3.5 h-3.5 ${star <= (activeDayRevisionRecord.rating || 5) ? 'fill-amber-400 text-amber-400' : 'text-stone-300'}`} />
                           </button>
                         ))}
                       </div>

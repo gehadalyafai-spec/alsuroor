@@ -611,3 +611,89 @@ ${cycleSummary}
 
 💡 *توجيه المعلم:* المراجعة اليومية المنتظمة هي سر رسوخ الحفظ وبركته. بارك الله في همتكم!`;
 }
+
+export interface SessionIntervalDay {
+  date: string;
+  dayOfWeek: number;
+  dayName: string;
+  isSessionDay: boolean;
+  order: number;
+}
+
+/**
+ * Returns the exact days leading up to and including the circle session:
+ * - For Sunday session (الأحد): returns Thursday, Friday, Saturday, Sunday (4 days)
+ * - For Wednesday session (الأربعاء): returns Monday, Tuesday, Wednesday (3 days)
+ */
+export function getSessionWirdIntervalDays(selectedDateStr: string): {
+  isSundaySession: boolean;
+  isWednesdaySession: boolean;
+  sessionDayName: string;
+  sessionDateStr: string;
+  intervalDays: SessionIntervalDay[];
+} {
+  const [y, m, d] = selectedDateStr.split('-').map(Number);
+  const baseDate = new Date(y, (m || 1) - 1, d || 1, 12, 0, 0);
+  const dayOfWeek = baseDate.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+
+  let sessionDateObj: Date;
+  let intervalOffsets: number[] = [];
+
+  if (dayOfWeek === 0) {
+    // Sunday: Thursday (-3), Friday (-2), Saturday (-1), Sunday (0)
+    sessionDateObj = new Date(baseDate);
+    intervalOffsets = [-3, -2, -1, 0];
+  } else if (dayOfWeek === 3) {
+    // Wednesday: Monday (-2), Tuesday (-1), Wednesday (0)
+    sessionDateObj = new Date(baseDate);
+    intervalOffsets = [-2, -1, 0];
+  } else if (dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6) {
+    // Thursday (4), Friday (5), Saturday (6) -> Next Sunday
+    const daysUntilSunday = 7 - dayOfWeek;
+    sessionDateObj = new Date(baseDate);
+    sessionDateObj.setDate(baseDate.getDate() + daysUntilSunday);
+    intervalOffsets = [-3, -2, -1, 0];
+  } else {
+    // Monday (1), Tuesday (2) -> Next Wednesday
+    const daysUntilWednesday = 3 - dayOfWeek;
+    sessionDateObj = new Date(baseDate);
+    sessionDateObj.setDate(baseDate.getDate() + daysUntilWednesday);
+    intervalOffsets = [-2, -1, 0];
+  }
+
+  const isSundaySession = sessionDateObj.getDay() === 0;
+  const isWednesdaySession = sessionDateObj.getDay() === 3;
+  const sessionDayName = isSundaySession ? 'الأحد' : 'الأربعاء';
+
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const sessionDateStr = formatLocalDate(sessionDateObj);
+
+  const intervalDays: SessionIntervalDay[] = intervalOffsets.map((offset, index) => {
+    const dayDate = new Date(sessionDateObj);
+    dayDate.setDate(sessionDateObj.getDate() + offset);
+    const dateStr = formatLocalDate(dayDate);
+    const dow = dayDate.getDay();
+    return {
+      date: dateStr,
+      dayOfWeek: dow,
+      dayName: ARABIC_DAYS[dow],
+      isSessionDay: offset === 0,
+      order: index + 1,
+    };
+  });
+
+  return {
+    isSundaySession,
+    isWednesdaySession,
+    sessionDayName,
+    sessionDateStr,
+    intervalDays,
+  };
+}
+
