@@ -10,7 +10,10 @@ import {
   formatRemainingQuranProgress,
   formatCurrentRubDetailed,
   getCycleDaysBreakdown,
-  getWeeklySchedule
+  getWeeklySchedule,
+  getSessionWirdIntervalDays,
+  calculateStudentStats,
+  ARABIC_DAYS
 } from '../utils/quranLogic';
 import { exportStudentToExcel } from '../utils/exportReports';
 import { RevisionStatus, SessionGrade } from '../types/quran';
@@ -19,7 +22,8 @@ import {
   BookOpen, CheckCircle2, Clock, Star, Calendar, FileText, 
   Download, Printer, Send, Award, AlertCircle, Sparkles, 
   ChevronRight, ChevronLeft, LogOut, ArrowRight, ShieldCheck, 
-  Check, UserCheck, RefreshCw, MessageSquare, Sliders, Settings2, Save, Palette
+  Check, UserCheck, RefreshCw, MessageSquare, Sliders, Settings2, Save, Palette,
+  CalendarDays, CheckSquare, Layers
 } from 'lucide-react';
 import { AppSettingsModal } from './AppSettingsModal';
 
@@ -152,13 +156,21 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   const currentQ = getQuarterByNumber(student.currentRub);
   const plan = getRequiredRecitationForSession(student.currentRub);
   
-  const revDateObj = new Date(revisionDate);
+  const revDateObj = new Date(revisionDate + 'T00:00:00');
   const revDayOfWeek = isNaN(revDateObj.getDay()) ? 4 : revDateObj.getDay();
+  const sessionDateObj = new Date(sessionDate + 'T00:00:00');
+  const sessionDayOfWeek = isNaN(sessionDateObj.getDay()) ? 0 : sessionDateObj.getDay();
+  const todayDateStr = new Date().toISOString().split('T')[0];
   const revPlan = getDailyRevisionAssignment(student.currentRub, revDayOfWeek, revDayOfWeek, student);
 
   const studentSessions = sessionRecords.filter(s => s.studentId === student.id);
   const studentRevisions = dailyRevisionRecords.filter(r => r.studentId === student.id);
   const studentSubmissions = submissions.filter(s => s.studentId === student.id);
+
+  // Weekly Schedule & Session Intervals
+  const weeklySchedule = getWeeklySchedule(student, revisionDate);
+  const intervalInfo = getSessionWirdIntervalDays(revisionDate);
+  const studentStats = calculateStudentStats(student);
 
   // Check if today's revision has a submission
   const todayRevSubmission = studentSubmissions.find(
@@ -231,6 +243,44 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
     completed: 'مكتمل',
     partial: 'جزئي',
     missed: 'لم يتم',
+  };
+
+  // Helper to jump to a specific session date
+  const jumpToSession = (targetDay: 'sunday' | 'wednesday') => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 Sun, 3 Wed
+    const d = new Date(today);
+    if (targetDay === 'sunday') {
+      const diff = currentDay === 0 ? 0 : 7 - currentDay;
+      d.setDate(today.getDate() + diff);
+    } else {
+      const diff = currentDay <= 3 ? 3 - currentDay : 10 - currentDay;
+      d.setDate(today.getDate() + diff);
+    }
+    const dateStr = d.toISOString().split('T')[0];
+    setSessionDate(dateStr);
+    setActiveTab('session');
+  };
+
+  // Helper to jump to interval in daily revision
+  const jumpToInterval = (type: 'sunday_period' | 'wednesday_period' | 'today') => {
+    const today = new Date();
+    if (type === 'today') {
+      setRevisionDate(today.toISOString().split('T')[0]);
+      return;
+    }
+    const d = new Date(today);
+    const day = today.getDay();
+    if (type === 'sunday_period') {
+      // jump to Thursday of this/upcoming Sunday period
+      const daysToThursday = (4 - day + 7) % 7;
+      d.setDate(today.getDate() + daysToThursday);
+    } else {
+      // jump to Monday
+      const daysToMonday = (1 - day + 7) % 7;
+      d.setDate(today.getDate() + daysToMonday);
+    }
+    setRevisionDate(d.toISOString().split('T')[0]);
   };
 
   return (
@@ -424,6 +474,154 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
               </div>
             </div>
 
+            {/* Weekly Schedule Roadmap Strip */}
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                <div>
+                  <h3 className="text-base font-bold text-stone-800 flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-emerald-600" />
+                    <span>جدول وخريطة الأسبوع (الورد والتسميع)</span>
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    متابعة توزيع الورد اليومي وجلسات التسميع (الأحد والأربعاء) على مدار الأسبوع
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveTab('daily_revision');
+                    }}
+                    className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>فتح الورد اليومي</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('session');
+                    }}
+                    className="px-3.5 py-1.5 bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Award className="w-4 h-4 text-amber-300" />
+                    <span>المقرر المطلوب للتسميع</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 7 Days Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+                {weeklySchedule.map((dayItem) => {
+                  const isToday = dayItem.date === todayDateStr;
+                  const sessionLabel = dayItem.dayOfWeek === 0 ? 'جلسة الأحد' : dayItem.dayOfWeek === 3 ? 'جلسة الأربعاء' : 'جلسة حلقة';
+                  const revForDay = studentRevisions.find(r => r.date === dayItem.date);
+                  const subForDay = studentSubmissions.find(s => s.type === 'daily_revision' && s.date === dayItem.date);
+                  const isApproved = revForDay?.status === 'completed' || subForDay?.status === 'approved';
+                  const isPending = subForDay?.status === 'pending';
+                  const isPartial = revForDay?.status === 'partial';
+
+                  return (
+                    <div
+                      key={dayItem.date}
+                      onClick={() => {
+                        setRevisionDate(dayItem.date);
+                        setActiveTab('daily_revision');
+                      }}
+                      className={`p-3 rounded-2xl border text-center transition-all cursor-pointer hover:shadow-md ${
+                        isToday
+                          ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                          : dayItem.isCircleDay
+                          ? 'bg-stone-50/90 border-stone-300 hover:border-emerald-400'
+                          : 'bg-white border-stone-200 hover:border-stone-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-xs font-bold ${isToday ? 'text-emerald-900' : 'text-stone-800'}`}>
+                          {dayItem.dayName}
+                        </span>
+                        {isToday && (
+                          <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded-full">
+                            اليوم
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-[10px] text-stone-500 font-mono mb-2">
+                        {dayItem.date.slice(5)}
+                      </div>
+
+                      {/* Day Type Badge */}
+                      <div className="mb-2">
+                        {dayItem.isCircleDay ? (
+                          <span className="inline-block text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-lg w-full truncate">
+                            🕌 {sessionLabel}
+                          </span>
+                        ) : (
+                          <span className="inline-block text-[10px] font-medium text-emerald-800 bg-emerald-50/70 border border-emerald-200 px-1.5 py-0.5 rounded-lg w-full truncate">
+                            📖 ورد يومي
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status indicator */}
+                      <div className="mt-1 pt-1.5 border-t border-stone-100">
+                        {isApproved ? (
+                          <span className="text-[10px] font-bold text-emerald-700 flex items-center justify-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>معتمد</span>
+                          </span>
+                        ) : isPending ? (
+                          <span className="text-[10px] font-bold text-amber-700 flex items-center justify-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>بانتظار المشرف</span>
+                          </span>
+                        ) : isPartial ? (
+                          <span className="text-[10px] font-bold text-amber-800 flex items-center justify-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            <span>جزئي</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-stone-400">
+                            لم يُسجل
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Next Recitation Highlight Banner */}
+              <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-stone-900 to-stone-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-amber-300 font-bold">جلسة التسميع القادمة بالحلقة (الأحد أو الأربعاء)</div>
+                    <div className="text-sm font-bold text-stone-100 mt-0.5">
+                      الربع المستهدف: الربع {student.currentRub} ({currentQ?.surahName || '—'}) + 3 أرباع ربط سابقة
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => jumpToSession('sunday')}
+                    className="px-3 py-1.5 bg-stone-700 hover:bg-stone-600 text-white text-xs font-bold rounded-xl border border-stone-600 transition-colors cursor-pointer"
+                  >
+                    جلسة الأحد
+                  </button>
+                  <button
+                    onClick={() => jumpToSession('wednesday')}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-emerald-600 transition-colors cursor-pointer"
+                  >
+                    جلسة الأربعاء
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Student's Comprehensive Performance Report */}
             <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
@@ -583,10 +781,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                 <div>
                   <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2">
                     <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                    <span>تعديل وتسليم الورد اليومي</span>
+                    <span>تعديل وتسليم الورد اليومي حسب أيام الأسبوع</span>
                   </h2>
                   <p className="text-xs text-stone-500 mt-1">
-                    يمكنك هنا تسجيل إنجازك للورد اليومي وإرساله لمشرف الحلقة للاعتماد والمزامنة
+                    اختر اليوم من الشريط أدناه لعرض ورده وتسجيل إنجازك وإرساله لمشرف الحلقة للاعتماد
                   </p>
                 </div>
 
@@ -600,6 +798,125 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                     className="px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-800 cursor-pointer focus:ring-2 focus:ring-emerald-600 outline-hidden"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Weekly Days Selection Strip with Fast Interval Switchers */}
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h3 className="font-bold text-sm text-stone-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span>شريط أيام الأسبوع التفاعلي:</span>
+                </h3>
+
+                {/* Session Period Quick Jumpers */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => jumpToInterval('sunday_period')}
+                    className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      [4, 5, 6, 0].includes(revDayOfWeek)
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    🕌 فترة جلسة الأحد (الخميس - الأحد)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => jumpToInterval('wednesday_period')}
+                    className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      [1, 2, 3].includes(revDayOfWeek)
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    🕌 فترة جلسة الأربعاء (الإثنين - الأربعاء)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => jumpToInterval('today')}
+                    className="px-2.5 py-1 text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl border border-stone-200 transition-colors cursor-pointer"
+                  >
+                    📍 اليوم
+                  </button>
+                </div>
+              </div>
+
+              {/* 7 Days Grid Selector */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+                {weeklySchedule.map((dayItem) => {
+                  const isToday = dayItem.date === todayDateStr;
+                  const sessionLabel = dayItem.dayOfWeek === 0 ? 'جلسة الأحد' : dayItem.dayOfWeek === 3 ? 'جلسة الأربعاء' : 'جلسة حلقة';
+                  const isSelected = revisionDate === dayItem.date;
+                  const revForDay = studentRevisions.find(r => r.date === dayItem.date);
+                  const subForDay = studentSubmissions.find(s => s.type === 'daily_revision' && s.date === dayItem.date);
+                  const isApproved = revForDay?.status === 'completed' || subForDay?.status === 'approved';
+                  const isPending = subForDay?.status === 'pending';
+
+                  return (
+                    <button
+                      key={dayItem.date}
+                      type="button"
+                      onClick={() => setRevisionDate(dayItem.date)}
+                      className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer relative ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-600/20 shadow-md transform -translate-y-0.5'
+                          : 'bg-stone-50/80 text-stone-800 border-stone-200 hover:bg-stone-100 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-stone-900'}`}>
+                          {dayItem.dayName}
+                        </span>
+                        {isToday && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                            isSelected ? 'bg-white text-emerald-800' : 'bg-emerald-600 text-white'
+                          }`}>
+                            اليوم
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={`text-[10px] font-mono mb-2 ${isSelected ? 'text-emerald-100' : 'text-stone-500'}`}>
+                        {dayItem.date.slice(5)}
+                      </div>
+
+                      <div className="text-[10px] mb-1 truncate">
+                        {dayItem.isCircleDay ? (
+                          <span className={`px-1.5 py-0.5 rounded-md font-bold ${
+                            isSelected ? 'bg-emerald-700 text-amber-200' : 'bg-amber-100 text-amber-900'
+                          }`}>
+                            🕌 {sessionLabel}
+                          </span>
+                        ) : (
+                          <span className={`px-1.5 py-0.5 rounded-md ${
+                            isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-stone-200/70 text-stone-600'
+                          }`}>
+                            📖 ورد
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status indicator dot */}
+                      <div className="mt-2 pt-1 border-t border-current/10 flex items-center justify-center gap-1 text-[10px]">
+                        {isApproved ? (
+                          <span className={isSelected ? 'text-emerald-200 font-bold' : 'text-emerald-700 font-bold'}>
+                            ✅ معتمد
+                          </span>
+                        ) : isPending ? (
+                          <span className={isSelected ? 'text-amber-200 font-bold' : 'text-amber-700 font-bold'}>
+                            ⏳ بانتظار
+                          </span>
+                        ) : (
+                          <span className={isSelected ? 'text-emerald-200/70' : 'text-stone-400'}>
+                            ⚪ لم يُسجل
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1030,10 +1347,10 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                 <div>
                   <h2 className="text-xl font-bold text-stone-800 flex items-center gap-2">
                     <Award className="w-6 h-6 text-emerald-600" />
-                    <span>جلسة التسميع في الحلقة</span>
+                    <span>جلسة التسميع في الحلقة (الأحد والأربعاء)</span>
                   </h2>
                   <p className="text-xs text-stone-500 mt-1">
-                    تسجيل ومزامنة جلسة التسميع الجديدة، والأرباع المسردة أمام الشيخ
+                    المقرر المطلوب سرده أمام الشيخ، وتسجيل إنجازك لجلسات الأحد والأربعاء
                   </p>
                 </div>
 
@@ -1046,6 +1363,61 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                     onChange={(e) => setSessionDate(e.target.value)}
                     className="px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-800 cursor-pointer focus:ring-2 focus:ring-emerald-600 outline-hidden"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Session Day Quick Selector Bar (Sunday & Wednesday) */}
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h3 className="font-bold text-sm text-stone-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span>تحديد جلسة التسميع للأسبوع الحالي:</span>
+                </h3>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => jumpToSession('sunday')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                      sessionDayOfWeek === 0
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-300'
+                    }`}
+                  >
+                    <span>🕌 جلسة الأحد</span>
+                    <span className="text-[11px] opacity-80">(يغطي ورد الخميس-السبت)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => jumpToSession('wednesday')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                      sessionDayOfWeek === 3
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-300'
+                    }`}
+                  >
+                    <span>🕌 جلسة الأربعاء</span>
+                    <span className="text-[11px] opacity-80">(يغطي ورد الإثنين-الثلاثاء)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Day info Banner */}
+              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs text-stone-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-emerald-800">
+                    {sessionDayOfWeek === 0
+                      ? '🌟 الجلسة المحددة: يوم الأحد'
+                      : sessionDayOfWeek === 3
+                      ? '🌟 الجلسة المحددة: يوم الأربعاء'
+                      : 'ℹ️ التاريخ المحدد ليس يوم حلقة رسمي (الأحد والأربعاء)'}
+                  </span>
+                  <span className="text-stone-500 font-mono">({sessionDate})</span>
+                </div>
+                <div className="text-[11px] text-stone-500">
+                  جلسات التحفيظ والتسميع الرسمية المعتمدة تكون يومي الأحد والأربعاء أسبوعياً
                 </div>
               </div>
             </div>
