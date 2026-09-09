@@ -309,16 +309,16 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
               <div
                 key={student.id}
                 id={`revision-row-${student.id}`}
-                className={`bg-white rounded-2xl border p-4 transition-all shadow-xs flex flex-col gap-3 ${
+                className={`bg-white rounded-3xl border-2 p-4 sm:p-5 transition-all shadow-md hover:shadow-lg flex flex-col gap-3 relative overflow-hidden ring-1 ring-black/5 ${
                   pendingSub
-                    ? 'border-amber-400 bg-amber-50/25 ring-2 ring-amber-400/20'
+                    ? 'border-amber-400 bg-amber-50/25 ring-2 ring-amber-400/30'
                     : isCompleted
-                    ? 'border-emerald-200 bg-emerald-50/15'
+                    ? 'border-emerald-500 bg-emerald-50/15 ring-2 ring-emerald-200'
                     : isPartial
-                    ? 'border-amber-200 bg-amber-50/15'
+                    ? 'border-amber-400 bg-amber-50/15 ring-2 ring-amber-200'
                     : isMissed
-                    ? 'border-rose-200 bg-rose-50/15'
-                    : 'border-stone-200/90 hover:border-emerald-300'
+                    ? 'border-rose-400 bg-rose-50/15 ring-2 ring-rose-200'
+                    : 'border-stone-300 hover:border-emerald-600'
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

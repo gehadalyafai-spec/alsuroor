@@ -83,7 +83,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({ onOpenAddModal, onOp
       </div>
 
       {/* Students Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((student) => {
           const stats = calculateStudentStats(student);
           const plan = getRequiredRecitationForSession(student.currentRub);
@@ -96,110 +96,115 @@ export const StudentsView: React.FC<StudentsViewProps> = ({ onOpenAddModal, onOp
             <div
               key={student.id}
               onClick={() => onOpenStudentModal(student.id)}
-              className="bg-white rounded-2xl border border-stone-200/90 hover:border-emerald-300 p-4 transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
+              className="group bg-white rounded-3xl border-2 border-stone-300 hover:border-emerald-600 transition-all shadow-md hover:shadow-xl cursor-pointer flex flex-col justify-between relative overflow-hidden ring-1 ring-black/5"
             >
-              <div>
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${student.avatarColor} text-white font-bold flex items-center justify-center text-sm shadow-xs`}>
-                      {student.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="font-bold text-sm text-stone-900 group-hover:text-emerald-700">
-                          {student.name}
-                        </h3>
-                        {student.customWirdType && student.customWirdType !== 'auto' && (
-                          <span 
-                            className="text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200 flex items-center gap-0.5"
-                            title="ورد مخصص"
-                          >
-                            <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                            <span>ورد مخصص</span>
-                          </span>
-                        )}
+              {/* Top Accent Strip to distinctly frame each student card */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700"></div>
+
+              <div className="p-5 flex flex-col justify-between flex-1">
+                <div>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2 pb-3.5 border-b-2 border-stone-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-11 h-11 rounded-2xl ${student.avatarColor} text-white font-bold flex items-center justify-center text-sm shadow-xs`}>
+                        {student.name.charAt(0)}
                       </div>
-                      <div className="text-[11px] text-stone-500 mt-0.5">
-                        انضم: {student.joinDate}
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-bold text-sm text-stone-900 group-hover:text-emerald-700 transition-colors">
+                            {student.name}
+                          </h3>
+                          {student.customWirdType && student.customWirdType !== 'auto' && (
+                            <span 
+                              className="text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200 flex items-center gap-0.5"
+                              title="ورد مخصص"
+                            >
+                              <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                              <span>ورد مخصص</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">
+                          انضم: {student.joinDate}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="text-[11px] px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      الجزء {stats.currentJuz}
+                    </span>
+                  </div>
+
+                  {/* Level Details */}
+                  <div className="py-3.5 space-y-2.5 text-xs">
+                    {/* Progress in Quran formatted as Juz and Rubs with remaining calculation */}
+                    <div className="bg-emerald-50/70 border-2 border-emerald-200/90 rounded-2xl p-3 space-y-1.5">
+                      <div className="flex justify-between items-center text-[11px] text-emerald-900 font-semibold">
+                        <span>التقدم في المصحف الشريف:</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                          {formatRemainingQuranProgress(student.currentRub).shortSummary}
+                        </span>
+                      </div>
+                      <div className="font-bold text-xs text-emerald-950">
+                        <span className="font-['Amiri',serif] text-sm text-emerald-900">
+                          {formatCurrentRubDetailed(student.currentRub)}
+                        </span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="w-full h-1.5 bg-emerald-100 rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full bg-emerald-600 rounded-full"
+                          style={{ width: `${Math.max(2, stats.progressPercent)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Active Daily Wird (الورد اليومي الحالي) */}
+                    <div className="bg-stone-50 p-3 rounded-2xl border-2 border-stone-200 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-stone-500 font-medium">
+                        <span>الورد اليومي للمراجعة ({todayWird.isCustomWird ? 'مخصص' : 'تلقائي'}):</span>
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded">
+                          {todayWird.shortLabel}
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-stone-800 leading-snug">
+                        {todayWird.description}
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    الجزء {stats.currentJuz}
+                {/* Bottom Actions */}
+                <div className="pt-3.5 border-t-2 border-stone-100 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyWhatsApp(student, e)}
+                      className="flex items-center gap-1.5 text-xs text-stone-600 hover:text-emerald-700 bg-stone-50 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-stone-200 transition-colors"
+                      title="نسخ جدول التسميع والمراجعة للواتساب"
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+                      <span>{isCopied ? 'تم النسخ!' : 'واتساب'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStudentToDelete(student);
+                      }}
+                      className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-stone-200 transition-colors cursor-pointer"
+                      title="حذف الطالب من الحلقة"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <span className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5">
+                    <span>فتح الملف والورد</span>
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </span>
                 </div>
-
-                {/* Level Details */}
-                <div className="py-3 space-y-2 text-xs">
-                  {/* Progress in Quran formatted as Juz and Rubs with remaining calculation */}
-                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 space-y-1">
-                    <div className="flex justify-between items-center text-[11px] text-emerald-900 font-semibold">
-                      <span>التقدم في المصحف الشريف:</span>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
-                        {formatRemainingQuranProgress(student.currentRub).shortSummary}
-                      </span>
-                    </div>
-                    <div className="font-bold text-xs text-emerald-950">
-                      <span className="font-['Amiri',serif] text-sm text-emerald-900">
-                        {formatCurrentRubDetailed(student.currentRub)}
-                      </span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-emerald-100 rounded-full overflow-hidden mt-1">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full"
-                        style={{ width: `${Math.max(2, stats.progressPercent)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Active Daily Wird (الورد اليومي الحالي) */}
-                  <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/80 space-y-1">
-                    <div className="flex items-center justify-between text-[11px] text-stone-500 font-medium">
-                      <span>الورد اليومي للمراجعة ({todayWird.isCustomWird ? 'مخصص' : 'تلقائي'}):</span>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded">
-                        {todayWird.shortLabel}
-                      </span>
-                    </div>
-                    <div className="text-xs font-bold text-stone-800 leading-snug">
-                      {todayWird.description}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={(e) => handleCopyWhatsApp(student, e)}
-                    className="flex items-center gap-1.5 text-xs text-stone-600 hover:text-emerald-700 bg-stone-50 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-stone-200 transition-colors"
-                    title="نسخ جدول التسميع والمراجعة للواتساب"
-                  >
-                    {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-                    <span>{isCopied ? 'تم النسخ!' : 'واتساب'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setStudentToDelete(student);
-                    }}
-                    className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-stone-200 transition-colors cursor-pointer"
-                    title="حذف الطالب من الحلقة"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <span className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5">
-                  <span>فتح الملف والورد</span>
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </span>
               </div>
             </div>
           );

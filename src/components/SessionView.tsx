@@ -17,7 +17,7 @@ import {
   Calendar, CheckCircle2, AlertCircle, Award, 
   ChevronRight, ChevronLeft, Search, Check, Sparkles, 
   Users, UserCheck, UserX, Clock, Star, BookOpen, Share2, 
-  Filter, Edit3, CheckSquare, Layers, HelpCircle
+  Filter, Edit3, CheckSquare, Layers, HelpCircle, Lock
 } from 'lucide-react';
 
 interface SessionViewProps {
@@ -77,7 +77,21 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
     }
   }, [selectedDate, sessionRecords]);
 
+  // Date parsing
+  const [y, m, d] = selectedDate.split('-').map(Number);
+  const currentDateObj = new Date(y, (m || 1) - 1, d || 1, 12, 0, 0);
+  const dayOfWeek = currentDateObj.getDay(); // 0 = Sunday, 3 = Wednesday
+  const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3;
+  const isSunday = dayOfWeek === 0;
+  const isWednesday = dayOfWeek === 3;
+  const dayName = ARABIC_DAYS[dayOfWeek];
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const saveAttendance = (studentId: string, status: AttendanceType) => {
+    // Attendance is strictly active on Sunday and Wednesday only
+    if (!isCircleDay) return;
+
     const updated = { ...attendanceMap, [studentId]: status };
     setAttendanceMap(updated);
     try {
@@ -99,6 +113,9 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   };
 
   const handleMarkAllPresent = () => {
+    // Attendance is strictly active on Sunday and Wednesday only
+    if (!isCircleDay) return;
+
     const updated: Record<string, AttendanceType> = { ...attendanceMap };
     activeStudents.forEach(s => {
       updated[s.id] = 'present';
@@ -120,14 +137,6 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   const [hesitations, setHesitations] = useState<number>(0);
   const [teacherNotes, setTeacherNotes] = useState<string>('');
   const [advanceToNext, setAdvanceToNext] = useState<boolean>(true);
-
-  // Date parsing
-  const currentDateObj = new Date(selectedDate);
-  const dayOfWeek = currentDateObj.getDay(); // 0 = Sunday, 3 = Wednesday
-  const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3;
-  const dayName = ARABIC_DAYS[dayOfWeek];
-
-  const todayStr = new Date().toISOString().split('T')[0];
 
   // Quick navigation helpers
   const changeDateByDays = (days: number) => {
@@ -433,14 +442,32 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleMarkAllPresent}
-            className="self-start sm:self-auto text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>تحضير جميع الطلاب كـ حاضرين</span>
-          </button>
+          {isCircleDay ? (
+            <button
+              type="button"
+              onClick={handleMarkAllPresent}
+              className="self-start sm:self-auto text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="تحضير جميع طلاب الحلقة كـ حاضرين لجلسة اليوم"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>تحضير جميع الطلاب كـ حاضرين</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] bg-stone-800/90 text-stone-300 border border-stone-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>التحضير نشط في يومي الأحد والأربعاء فقط</span>
+              </span>
+              <button
+                type="button"
+                onClick={jumpToSunday}
+                className="text-[11px] font-bold bg-emerald-600/90 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-xl border border-emerald-400/40 transition-colors cursor-pointer"
+                title="الانتقال لجلسة الأحد لتسجيل التحضير"
+              >
+                انتقال لجلسة الأحد 🕌
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -522,8 +549,8 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
       </div>
 
       {/* Unified Student Cards Grid */}
-      <div className="space-y-4" id="unified-students-container">
-        {filteredStudents.map((student) => {
+      <div className="space-y-6" id="unified-students-container">
+        {filteredStudents.map((student, index) => {
           const plan = getRequiredRecitationForSession(student.currentRub);
           const newQuarter = getQuarterByNumber(plan.newRub);
           const sessionRecord = currentDayRecordsMap.get(student.id);
@@ -564,94 +591,134 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
             <div
               key={student.id}
               id={`student-card-${student.id}`}
-              className={`bg-white rounded-3xl border transition-all p-4 sm:p-5 shadow-xs flex flex-col gap-4 ${
+              className={`bg-white rounded-3xl border-2 transition-all shadow-md hover:shadow-xl flex flex-col relative overflow-hidden ring-1 ring-black/5 ${
                 attendance === 'absent'
-                  ? 'border-rose-200 bg-rose-50/20'
+                  ? 'border-rose-400 bg-rose-50/20 ring-2 ring-rose-200'
                   : sessionRecord && completedIntervalDaysCount === sessionInterval.intervalDays.length
-                  ? 'border-emerald-300/90 bg-emerald-50/15 ring-1 ring-emerald-500/20'
-                  : 'border-stone-200 hover:border-emerald-300'
+                  ? 'border-emerald-500 bg-emerald-50/15 ring-2 ring-emerald-300'
+                  : 'border-stone-300 hover:border-emerald-600'
               }`}
             >
-              {/* Card Header: Student Profile Info + Attendance Status Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-stone-100">
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl ${student.avatarColor} text-white font-bold flex items-center justify-center text-base shadow-xs shrink-0`}>
-                    {student.name.charAt(0)}
+              {/* Top Accent Strip that clearly outlines the top boundary of each student's card */}
+              <div className={`h-2 w-full ${
+                attendance === 'absent'
+                  ? 'bg-rose-500'
+                  : sessionRecord && completedIntervalDaysCount === sessionInterval.intervalDays.length
+                  ? 'bg-emerald-600'
+                  : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-stone-700'
+              }`} />
+
+              <div className="p-4 sm:p-5 pt-3.5 flex flex-col gap-4 flex-1">
+                {/* Card Header: Student Profile Info + Attendance Status Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b-2 border-stone-200">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`w-12 h-12 rounded-2xl ${student.avatarColor} text-white font-bold flex items-center justify-center text-lg shadow-sm shrink-0`}>
+                        {student.name.charAt(0)}
+                      </div>
+                      <span className="absolute -bottom-1 -left-1 text-[9px] font-bold bg-stone-800 text-white px-1.5 py-0.2 rounded-md shadow-xs border border-white">
+                        #{index + 1}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => onOpenStudentModal(student.id)}
+                          className="font-bold text-stone-900 text-sm sm:text-base hover:text-emerald-700 transition-colors text-right flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>{student.name}</span>
+                          <ChevronLeft className="w-3.5 h-3.5 text-stone-400" />
+                        </button>
+
+                        <span className="text-[11px] bg-stone-100 text-stone-700 font-semibold px-2 py-0.5 rounded-lg border border-stone-200">
+                          {formatCurrentRubDetailed(student.currentRub)}
+                        </span>
+
+                        <span className="text-[10px] bg-emerald-50 text-emerald-800 font-medium px-2 py-0.5 rounded-lg border border-emerald-200">
+                          المتبقي: {formatRemainingQuranProgress(student.currentRub).shortSummary}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-stone-500 mt-0.5 flex items-center gap-2">
+                        <span>كود الحساب: <strong className="font-mono text-stone-700">{student.accessCode}</strong></span>
+                        <span>•</span>
+                        <span>أنجز {student.completedRubCount} ربعاً</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
+
+                  {/* Student Attendance Picker (تحضير الطالب) - نشط يومي الأحد والأربعاء فقط */}
+                  {isCircleDay ? (
+                    <div className="flex items-center gap-1.5 self-start sm:self-center bg-stone-100/90 p-1.5 rounded-2xl border-2 border-stone-200 shadow-2xs">
+                      <span className="text-[11px] font-bold text-emerald-800 px-2 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>التحضير:</span>
+                      </span>
                       <button
                         type="button"
-                        onClick={() => onOpenStudentModal(student.id)}
-                        className="font-bold text-stone-900 text-sm sm:text-base hover:text-emerald-700 transition-colors text-right flex items-center gap-1 cursor-pointer"
+                        onClick={() => saveAttendance(student.id, 'present')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          attendance === 'present'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-stone-700 hover:bg-white/90'
+                        }`}
                       >
-                        <span>{student.name}</span>
-                        <ChevronLeft className="w-3.5 h-3.5 text-stone-400" />
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>حاضر</span>
                       </button>
 
-                      <span className="text-[11px] bg-stone-100 text-stone-700 font-semibold px-2 py-0.5 rounded-lg border border-stone-200">
-                        {formatCurrentRubDetailed(student.currentRub)}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => saveAttendance(student.id, 'absent')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          attendance === 'absent'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-stone-700 hover:bg-white/90'
+                        }`}
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>غائب</span>
+                      </button>
 
-                      <span className="text-[10px] bg-emerald-50 text-emerald-800 font-medium px-2 py-0.5 rounded-lg border border-emerald-200">
-                        المتبقي: {formatRemainingQuranProgress(student.currentRub).shortSummary}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => saveAttendance(student.id, 'excused')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          attendance === 'excused'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'text-stone-700 hover:bg-white/90'
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>مستأذن</span>
+                      </button>
                     </div>
-
-                    <div className="text-[11px] text-stone-500 mt-0.5 flex items-center gap-2">
-                      <span>كود الحساب: <strong className="font-mono text-stone-700">{student.accessCode}</strong></span>
-                      <span>•</span>
-                      <span>أنجز {student.completedRubCount} ربعاً</span>
+                  ) : (
+                    <div 
+                      className="flex items-center gap-2 self-start sm:self-center bg-stone-100/90 py-1.5 px-3 rounded-2xl border-2 border-stone-200 text-stone-600 shadow-2xs" 
+                      title="التحضير نشط في يومي الأحد والأربعاء فقط"
+                    >
+                      <div className="flex items-center gap-1.5 text-stone-500 text-xs font-medium">
+                        <Lock className="w-3.5 h-3.5 text-stone-400" />
+                        <span className="text-[11px] font-semibold text-stone-600">التحضير متاح الأحد والأربعاء فقط</span>
+                      </div>
+                      {attendance !== 'unmarked' && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
+                          attendance === 'present' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                          attendance === 'absent' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                          'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}>
+                          {attendance === 'present' ? 'مسجل حاضر' : attendance === 'absent' ? 'مسجل غائب' : 'مسجل مستأذن'}
+                        </span>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Student Attendance Picker (تحضير الطالب) */}
-                <div className="flex items-center gap-1.5 self-start sm:self-center bg-stone-100/90 p-1 rounded-2xl border border-stone-200/80">
-                  <span className="text-[10px] font-bold text-stone-500 px-2">التحضير:</span>
-                  <button
-                    type="button"
-                    onClick={() => saveAttendance(student.id, 'present')}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                      attendance === 'present'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-stone-600 hover:bg-white/80'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>حاضر</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => saveAttendance(student.id, 'absent')}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                      attendance === 'absent'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'text-stone-600 hover:bg-white/80'
-                    }`}
-                  >
-                    <UserX className="w-3.5 h-3.5" />
-                    <span>غائب</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => saveAttendance(student.id, 'excused')}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                      attendance === 'excused'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'text-stone-600 hover:bg-white/80'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>مستأذن</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Card Body: Unified Dual Columns (التسميع + الورد اليومي للفترة) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Card Body: Unified Dual Columns (التسميع + الورد اليومي للفترة) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 
                 {/* 1. RIGHT COLUMN: تسميع الحلقة (4 أرباع) */}
                 <div className="bg-stone-50/80 rounded-2xl border border-stone-200/80 p-3.5 sm:p-4 flex flex-col justify-between space-y-3">
@@ -992,9 +1059,10 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
                 </button>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
+    </div>
 
       {/* Empty State */}
       {filteredStudents.length === 0 && (
