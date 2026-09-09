@@ -6,6 +6,8 @@ import {
   calculateStudentStats, 
   generateWhatsAppMessage, 
   formatQuranProgress,
+  formatRemainingQuranProgress,
+  formatCurrentRubDetailed,
   getDailyRevisionAssignment 
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
@@ -131,16 +133,17 @@ export const StudentsView: React.FC<StudentsViewProps> = ({ onOpenAddModal, onOp
 
                 {/* Level Details */}
                 <div className="py-3 space-y-2 text-xs">
-                  {/* Progress in Quran formatted as Juz and Rubs (e.g. 12 جزء و 3 أرباع / 12 جزء كامل) */}
+                  {/* Progress in Quran formatted as Juz and Rubs with remaining calculation */}
                   <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 space-y-1">
                     <div className="flex justify-between items-center text-[11px] text-emerald-900 font-semibold">
                       <span>التقدم في المصحف الشريف:</span>
-                      <span className="font-mono text-emerald-800">{stats.progressPercent}%</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                        {formatRemainingQuranProgress(student.currentRub).shortSummary}
+                      </span>
                     </div>
-                    <div className="font-bold text-xs text-emerald-950 flex items-center justify-between">
-                      <span className="font-['Amiri',serif] text-sm text-emerald-900">{currentProgressText}</span>
-                      <span className="text-[10px] text-emerald-700 font-normal">
-                        (الربع {student.currentRub} - {newQ?.surahName})
+                    <div className="font-bold text-xs text-emerald-950">
+                      <span className="font-['Amiri',serif] text-sm text-emerald-900">
+                        {formatCurrentRubDetailed(student.currentRub)}
                       </span>
                     </div>
                     {/* Progress Bar */}

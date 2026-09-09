@@ -7,6 +7,8 @@ import {
   getDailyRevisionAssignment, 
   formatRubsToJuzDescription, 
   formatQuranProgress,
+  formatRemainingQuranProgress,
+  formatCurrentRubDetailed,
   getCycleDaysBreakdown,
   getWeeklySchedule
 } from '../utils/quranLogic';
@@ -17,9 +19,8 @@ import {
   BookOpen, CheckCircle2, Clock, Star, Calendar, FileText, 
   Download, Printer, Send, Award, AlertCircle, Sparkles, 
   ChevronRight, ChevronLeft, LogOut, ArrowRight, ShieldCheck, 
-  Check, UserCheck, RefreshCw, MessageSquare, Layers, Sliders, Settings2, Save, Palette
+  Check, UserCheck, RefreshCw, MessageSquare, Sliders, Settings2, Save, Palette
 } from 'lucide-react';
-import { MutashabihatView } from './MutashabihatView';
 import { AppSettingsModal } from './AppSettingsModal';
 
 interface StudentPortalViewProps {
@@ -54,7 +55,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   const student = students.find(s => s.id === activeStudentId);
 
   // Sub-tabs in student portal
-  const [activeTab, setActiveTab] = useState<'overview' | 'daily_revision' | 'session' | 'submissions' | 'mutashabihat'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'daily_revision' | 'session' | 'submissions'>('overview');
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   // Custom Wird Modal / Form State
@@ -341,18 +342,6 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             <Clock className="w-4 h-4" />
             <span>سجل طلباتي واعتمادات المشرف ({studentSubmissions.length})</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('mutashabihat')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === 'mutashabihat'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-amber-500/90 hover:text-amber-600 dark:text-amber-300/80 dark:hover:text-amber-200 hover:bg-black/5 dark:hover:bg-white/5'
-            }`}
-          >
-            <Layers className="w-4 h-4 text-amber-500" />
-            <span>متشابهات القرآن</span>
-          </button>
         </div>
       </header>
 
@@ -366,31 +355,33 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-700/50 relative overflow-hidden">
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <div className="inline-flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-xs text-emerald-200 mb-3">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    <span>مستوى الحفظ الحالي للطالب</span>
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <div className="inline-flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-xs text-emerald-200">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>مستوى الحفظ الحالي للطالب</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 text-amber-200 px-3 py-1 rounded-full text-xs font-semibold">
+                      <span>المتبقي للختمة: {formatRemainingQuranProgress(student.currentRub).formatted}</span>
+                    </div>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 flex-wrap">
-                    <span>الربع {student.currentRub}: {currentQ?.surahName || (qInfo ? `سورة ${qInfo.surahName}` : '')}</span>
-                    <span className="text-sm bg-emerald-700/80 text-amber-300 px-3 py-1 rounded-xl font-medium border border-emerald-500/40 shadow-xs">
-                      {formatQuranProgress(student.currentRub)}
-                    </span>
+                    <span>{formatCurrentRubDetailed(student.currentRub)}</span>
                   </h2>
-                  <p className="text-emerald-100 text-sm mt-1 max-w-xl">
+                  <p className="text-emerald-100 text-sm mt-1.5 max-w-xl">
                     {currentQ?.startVerseText ? `«${currentQ.startVerseText}...»` : ''} • الجزء {qInfo?.juz || '—'} • الحزب {qInfo?.hizb || '—'} • الصفحة التقريبية {qInfo?.approxPage || '—'}
                   </p>
                 </div>
 
                 {/* Progress Percentage Gauge */}
-                <div className="bg-emerald-950/70 border border-emerald-600/30 rounded-2xl p-4 text-center shrink-0 min-w-[170px]">
+                <div className="bg-emerald-950/70 border border-emerald-600/30 rounded-2xl p-4 text-center shrink-0 min-w-[190px]">
                   <div className="text-3xl sm:text-4xl font-black text-amber-300">
                     {((student.completedRubCount / 240) * 100).toFixed(1)}%
                   </div>
                   <div className="text-xs text-emerald-200 mt-1 font-medium">
                     نسبة إنجاز الختمة
                   </div>
-                  <div className="text-[11px] text-stone-300 mt-0.5">
-                    ({student.completedRubCount} من 240 ربعاً)
+                  <div className="text-[11px] text-amber-200/90 mt-0.5 font-semibold">
+                    {formatRemainingQuranProgress(student.currentRub).shortSummary}
                   </div>
                 </div>
               </div>
@@ -399,8 +390,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
               <div className="relative z-10 mt-6 pt-5 border-t border-emerald-700/40">
                 <div className="flex justify-between text-xs text-emerald-200 mb-2 font-medium">
                   <span>البداية (الفاتحة)</span>
-                  <span>الربع المستهدف حالياً: {student.currentRub}</span>
-                  <span>الختام (سورة الناس)</span>
+                  <span className="text-amber-300 font-bold">موضعك الحالي: {formatQuranProgress(student.currentRub)} (الربع {student.currentRub})</span>
+                  <span>الختام (سورة الناس - 30 جزءاً)</span>
                 </div>
                 <div className="w-full bg-emerald-950/80 rounded-full h-3.5 p-0.5 overflow-hidden shadow-inner">
                   <div 
@@ -414,12 +405,12 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-xs text-center">
-                <div className="text-2xl font-bold text-emerald-700">{student.completedRubCount}</div>
-                <div className="text-xs text-stone-500 mt-1">الأرباع المنجزة (مجتازة)</div>
+                <div className="text-2xl font-bold text-emerald-700">{formatQuranProgress(student.completedRubCount || 0)}</div>
+                <div className="text-xs text-stone-500 mt-1">المحفوظ المنجز ({student.completedRubCount} ربعاً)</div>
               </div>
               <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-xs text-center">
-                <div className="text-2xl font-bold text-teal-700">{240 - student.completedRubCount}</div>
-                <div className="text-xs text-stone-500 mt-1">الأرباع المتبقية للختمة</div>
+                <div className="text-base sm:text-lg font-bold text-teal-700">{formatRemainingQuranProgress(student.currentRub).shortSummary}</div>
+                <div className="text-xs text-stone-500 mt-1">المتبقي من 30 جزءاً ({240 - student.completedRubCount} ربعاً)</div>
               </div>
               <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-xs text-center">
                 <div className="text-2xl font-bold text-amber-700">{studentSessions.length}</div>
@@ -1308,32 +1299,6 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {/* 5. MUTASHABIHAT TAB */}
-        {activeTab === 'mutashabihat' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-xs font-bold mb-2">
-                  <Layers className="w-3.5 h-3.5 text-amber-700" />
-                  <span>دليل متشابهات القرآن الكريم للطالب</span>
-                </div>
-                <h2 className="text-xl font-bold text-stone-900">
-                  المتشابهات اللفظية والضوابط التثبيتية
-                </h2>
-                <p className="text-xs text-stone-500 mt-1">
-                  استعرض المتشابهات وركز على أجزاء حفظك الحالية مع اختبارات إخفاء الفروق والضوابط الذهبية
-                </p>
-              </div>
-              <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl px-4 py-2 text-xs font-semibold">
-                <span>موضع حفظك الحالي: </span>
-                <span className="font-bold text-emerald-950">الربع {student.currentRub} (الجزء {Math.ceil((student.currentRub || 1) / 8)})</span>
-              </div>
-            </div>
-
-            <MutashabihatView />
           </div>
         )}
 

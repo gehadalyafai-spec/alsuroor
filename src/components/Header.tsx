@@ -7,7 +7,7 @@ import {
   Download, Upload, RotateCcw, Cloud, CloudOff, 
   RefreshCw, LogOut, User, Check, AlertTriangle, ShieldCheck,
   TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles,
-  Palette, Sliders, Layers
+  Palette, Sliders
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -463,7 +463,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>جلسة التسميع (الأحد/الأربعاء)</span>
+            <span>التسميع والورد والتحضير (جلسة الحلقة)</span>
           </button>
 
           <button
@@ -516,19 +516,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span>فهرس الأرباع (240)</span>
-          </button>
-
-          <button
-            id="tab-mutashabihat"
-            onClick={() => setActiveTab('mutashabihat')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === 'mutashabihat'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-amber-500/90 hover:text-amber-600 dark:text-amber-300/80 dark:hover:text-amber-200 hover:bg-black/5 dark:hover:bg-white/5'
-            }`}
-          >
-            <Layers className="w-4 h-4 text-amber-500" />
-            <span>متشابهات القرآن</span>
           </button>
 
           <button

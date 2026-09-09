@@ -199,6 +199,98 @@ export function formatQuranProgress(rubNumber: number): string {
 }
 
 /**
+ * Formats what remains for the student to complete the 30 Juz (240 Quarters) of the Quran.
+ * e.g. for rub 84: 240 - 84 = 156 rubs remaining -> "19 جزءاً و 4 أرباع متبقية (من 30 جزءاً)"
+ */
+export function formatRemainingQuranProgress(rubNumber: number): {
+  remainingRubs: number;
+  remainingJuz: number;
+  formatted: string;
+  shortSummary: string;
+  isComplete: boolean;
+} {
+  const safeRub = Math.max(0, Math.min(240, Number(rubNumber) || 0));
+  const remainingRubs = 240 - safeRub;
+
+  if (remainingRubs <= 0) {
+    return {
+      remainingRubs: 0,
+      remainingJuz: 0,
+      formatted: 'ختم القرآن الكريم كاملاً مبارك له 🎉',
+      shortSummary: 'ختم 30 جزءاً بالكامل',
+      isComplete: true,
+    };
+  }
+
+  const remainingWholeJuz = Math.floor(remainingRubs / 8);
+  const remainingExtraRubs = remainingRubs % 8;
+
+  let formatted = '';
+  let shortSummary = '';
+
+  if (remainingWholeJuz === 0) {
+    if (remainingExtraRubs === 1) {
+      formatted = 'ربع واحد متبقٍ لختم القرآن';
+      shortSummary = 'ربع واحد متبقٍ';
+    } else if (remainingExtraRubs === 2) {
+      formatted = 'ربعان متبقيان لختم القرآن';
+      shortSummary = 'ربعان متبقيان';
+    } else {
+      formatted = `${remainingExtraRubs} أرباع متبقية لختم القرآن`;
+      shortSummary = `${remainingExtraRubs} أرباع متبقية`;
+    }
+  } else if (remainingExtraRubs === 0) {
+    if (remainingWholeJuz === 1) {
+      formatted = 'جزء واحد متبقٍ من أصل 30 جزءاً';
+      shortSummary = 'جزء واحد متبقٍ';
+    } else if (remainingWholeJuz === 2) {
+      formatted = 'جزآن متبقيان من أصل 30 جزءاً';
+      shortSummary = 'جزآن متبقيان';
+    } else if (remainingWholeJuz >= 3 && remainingWholeJuz <= 10) {
+      formatted = `${remainingWholeJuz} أجزاء متبقية من أصل 30 جزءاً`;
+      shortSummary = `${remainingWholeJuz} أجزاء متبقية`;
+    } else {
+      formatted = `${remainingWholeJuz} جزءاً متبقياً من أصل 30 جزءاً`;
+      shortSummary = `${remainingWholeJuz} جزءاً متبقياً`;
+    }
+  } else {
+    let jText = '';
+    if (remainingWholeJuz === 1) jText = 'جزء واحد';
+    else if (remainingWholeJuz === 2) jText = 'جزآن';
+    else if (remainingWholeJuz >= 3 && remainingWholeJuz <= 10) jText = `${remainingWholeJuz} أجزاء`;
+    else jText = `${remainingWholeJuz} جزءاً`;
+
+    let rText = '';
+    if (remainingExtraRubs === 1) rText = 'ربع واحد';
+    else if (remainingExtraRubs === 2) rText = 'ربعان';
+    else rText = `${remainingExtraRubs} أرباع`;
+
+    formatted = `${jText} و ${rText} متبقية من 30 جزءاً (${remainingRubs} ربعاً)`;
+    shortSummary = `${jText} و ${rText} متبقية`;
+  }
+
+  return {
+    remainingRubs,
+    remainingJuz: remainingWholeJuz,
+    formatted,
+    shortSummary,
+    isComplete: false,
+  };
+}
+
+/**
+ * Returns formatted progress with surah and rub details e.g.:
+ * "10 أجزاء و 4 أرباع (الربع 84 - سورة يونس)"
+ */
+export function formatCurrentRubDetailed(rubNumber: number): string {
+  const safeRub = Math.max(1, Math.min(240, Number(rubNumber) || 1));
+  const progressText = formatQuranProgress(safeRub);
+  const q = getQuarterByNumber(safeRub);
+  const surahPart = q?.surahName ? ` - سورة ${q.surahName}` : '';
+  return `${progressText} (الربع ${safeRub}${surahPart})`;
+}
+
+/**
  * Generates the full breakdown of all days in the student's complete Khatmah Revision Cycle (دورة ختمة الورد).
  *
  * Exact Quranic Progression Rules:

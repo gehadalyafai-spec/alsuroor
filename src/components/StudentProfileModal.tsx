@@ -6,6 +6,8 @@ import {
   generateWhatsAppMessage, 
   calculateStudentStats,
   formatQuranProgress,
+  formatRemainingQuranProgress,
+  formatCurrentRubDetailed,
   getCycleDaysBreakdown 
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
@@ -463,9 +465,11 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
 
           {/* Quran Progress Bar */}
           <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3.5 space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
-              <span>التقدم في المصحف الشريف (30 جزءاً - 240 ربعاً):</span>
-              <span>{stats.progressPercent}%</span>
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-950 flex-wrap gap-1">
+              <span>المتبقي لختم القرآن الكريم:</span>
+              <span className="text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-lg border border-emerald-300">
+                {formatRemainingQuranProgress(student.currentRub).formatted}
+              </span>
             </div>
             <div className="w-full h-3 bg-stone-200/80 rounded-full overflow-hidden">
               <div
@@ -473,10 +477,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                 style={{ width: `${Math.max(1, stats.progressPercent)}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-[10px] text-emerald-800">
-              <span>البداية (الفاتحة)</span>
-              <span>الربع الحالي: {student.currentRub} ({currentQuarterInfo?.surahName})</span>
-              <span>الختمة (سورة الناس)</span>
+            <div className="flex justify-between text-[10px] text-emerald-800 font-medium">
+              <span>الفاتحة (ج1)</span>
+              <span className="font-bold text-emerald-950">
+                الموضع الحالي: {formatCurrentRubDetailed(student.currentRub)}
+              </span>
+              <span>الناس (30 جزءاً)</span>
             </div>
           </div>
 
