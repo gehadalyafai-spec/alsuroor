@@ -19,7 +19,7 @@ import { exportStudentToExcel } from '../utils/exportReports';
 import { RevisionStatus, SessionGrade } from '../types/quran';
 import { useTheme } from '../context/ThemeContext';
 import { 
-  BookOpen, CheckCircle2, Clock, Star, Calendar, FileText, 
+  BookOpen, CheckCircle2, Clock, Calendar, FileText, 
   Download, Printer, Send, Award, AlertCircle, Sparkles, 
   ChevronRight, ChevronLeft, LogOut, ArrowRight, ShieldCheck, 
   Check, UserCheck, RefreshCw, MessageSquare, Sliders, Settings2, Save, Palette,
@@ -120,7 +120,6 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   // Daily revision form state
   const [revisionDate, setRevisionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [revStatus, setRevStatus] = useState<RevisionStatus>('completed');
-  const [revRating, setRevRating] = useState<number>(5);
   const [revNotes, setRevNotes] = useState<string>('');
   const [isSubmittingRev, setIsSubmittingRev] = useState(false);
   const [revSuccessMsg, setRevSuccessMsg] = useState(false);
@@ -191,7 +190,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
     try {
       await submitDailyRevision(student.id, revisionDate, {
         status: revStatus,
-        rating: revRating,
+        rating: 5,
         notes: revNotes.trim(),
         assignedRubs: revPlan.assignedRubs,
       });
@@ -718,49 +717,64 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
 
               {/* Revisions Table */}
               <div>
-                <h4 className="font-bold text-sm text-stone-800 mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>سجل الورد اليومي المعتمد ({studentRevisions.length})</span>
-                </h4>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h4 className="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>سجل الورد اليومي المعتمد ({studentRevisions.length})</span>
+                  </h4>
+                  <span className="text-[11px] text-stone-500">
+                    أوراد المراجعة اليومية المعتمدة رسمياً في حلقة جامع السرور
+                  </span>
+                </div>
                 {studentRevisions.length === 0 ? (
-                  <div className="p-6 bg-stone-50 rounded-2xl text-center text-xs text-stone-500 border border-stone-100">
+                  <div className="p-8 bg-stone-50/80 rounded-2xl text-center text-xs text-stone-500 border border-stone-200/70">
                     لم يُسجل ورد يومي معتمد بعد للطالب.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto border border-stone-200 rounded-2xl">
+                  <div className="overflow-x-auto border border-stone-200/80 rounded-2xl shadow-2xs">
                     <table className="w-full text-right text-xs">
-                      <thead className="bg-stone-50 text-stone-600 border-b border-stone-200 font-bold">
+                      <thead className="bg-stone-50/90 text-stone-700 border-b border-stone-200 font-bold">
                         <tr>
-                          <th className="p-3">التاريخ</th>
-                          <th className="p-3">الأرباع المقررة</th>
-                          <th className="p-3">حالة الورد</th>
-                          <th className="p-3">التقييم الذاتي</th>
-                          <th className="p-3">الملاحظات</th>
+                          <th className="p-3.5">التاريخ</th>
+                          <th className="p-3.5">الأرباع المقررة ومقدار الورد</th>
+                          <th className="p-3.5 text-center">حالة الإنجاز</th>
+                          <th className="p-3.5">الملاحظات والتوجيهات</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-100">
+                      <tbody className="divide-y divide-stone-100 bg-white">
                         {studentRevisions.map((rev) => (
-                          <tr key={rev.id} className="hover:bg-stone-50/70">
-                            <td className="p-3 font-medium text-stone-800">{rev.date}</td>
-                            <td className="p-3 text-stone-700 font-medium">
-                              {formatRubsToJuzDescription(rev.assignedRubs).fullDescription}
+                          <tr key={rev.id} className="hover:bg-emerald-50/30 transition-colors">
+                            <td className="p-3.5 font-semibold text-stone-900 font-mono whitespace-nowrap">
+                              {rev.date}
                             </td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded-md font-bold ${
-                                rev.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
-                                rev.status === 'partial' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                              }`}>
-                                {statusArabic[rev.status] || rev.status}
+                            <td className="p-3.5 text-stone-800 font-medium">
+                              <span className="inline-block bg-emerald-50/80 text-emerald-900 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-semibold">
+                                {formatRubsToJuzDescription(rev.assignedRubs).fullDescription}
                               </span>
                             </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-1 text-amber-500">
-                                {Array.from({ length: rev.rating || 5 }).map((_, i) => (
-                                  <Star key={i} className="w-3 h-3 fill-amber-400" />
-                                ))}
-                              </div>
+                            <td className="p-3.5 text-center whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                                rev.status === 'completed'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : rev.status === 'partial'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                  : 'bg-rose-50 text-rose-800 border-rose-300'
+                              }`}>
+                                {rev.status === 'completed' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                                {rev.status === 'partial' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                                {rev.status === 'missed' && <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
+                                <span>{statusArabic[rev.status] || rev.status}</span>
+                              </span>
                             </td>
-                            <td className="p-3 text-stone-600 max-w-xs truncate">{rev.notes || '—'}</td>
+                            <td className="p-3.5 text-stone-600 max-w-sm">
+                              {rev.notes ? (
+                                <span className="text-stone-700 bg-stone-50 px-2.5 py-1 rounded-lg border border-stone-200/60 inline-block">
+                                  {rev.notes}
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 font-normal">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1265,40 +1279,15 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                   </div>
                 </div>
 
-                {/* 2. Self Rating (Stars) */}
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-2">
-                    2. تقييمي لمستوى إتقاني وحفظي (من 5):
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRevRating(star)}
-                        className="p-1 text-amber-400 hover:scale-110 transition-transform cursor-pointer"
-                      >
-                        <Star className={`w-8 h-8 ${star <= revRating ? 'fill-amber-400 text-amber-400' : 'text-stone-300'}`} />
-                      </button>
-                    ))}
-                    <span className="text-xs font-bold text-stone-700 mr-2">
-                      {revRating === 5 && 'ممتاز جداً (إتقان تام) 🌟'}
-                      {revRating === 4 && 'جيد جداً (تردد خفيف)'}
-                      {revRating === 3 && 'جيد (يحتاج بعض التكرار)'}
-                      {revRating <= 2 && 'يحتاج تثبيت إضافي'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Student Notes for Supervisor */}
+                {/* 2. Student Notes for Supervisor */}
                 <div>
                   <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    3. ملاحظاتي للمشرف أو أسئلتي في الورد:
+                    2. ملاحظاتي للمشرف أو أسئلتي في الورد (اختياري):
                   </label>
                   <textarea
                     value={revNotes}
                     onChange={(e) => setRevNotes(e.target.value)}
-                    placeholder="مثال: راجعت مع والدي، أتقنت أول ربعين ووجدت تشابهاً في سورة البقرة الآية 150..."
+                    placeholder="مثال: راجعت الورد المقرّر بإتقان، وراجعت الأرباع مع والدي..."
                     rows={3}
                     className="w-full p-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-800 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-hidden transition-all"
                   />
@@ -1625,9 +1614,6 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                         <div>
                           <span className="font-semibold text-stone-700">حالة الورد المرسلة: </span>
                           <span>{statusArabic[sub.revisionData.status] || sub.revisionData.status}</span>
-                          {sub.revisionData.rating && (
-                            <span className="mr-2">({sub.revisionData.rating} من 5 نجوم ⭐)</span>
-                          )}
                         </div>
                       )}
 
