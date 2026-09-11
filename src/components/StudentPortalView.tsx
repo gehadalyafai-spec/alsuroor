@@ -13,6 +13,7 @@ import {
   getWeeklySchedule,
   getSessionWirdIntervalDays,
   calculateStudentStats,
+  getStudentRotatedCycle,
   ARABIC_DAYS
 } from '../utils/quranLogic';
 import { exportStudentToExcel } from '../utils/exportReports';
@@ -62,47 +63,37 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   const [activeTab, setActiveTab] = useState<'overview' | 'daily_revision' | 'session' | 'submissions'>('overview');
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
-  // Custom Wird Modal / Form State
+  // Custom Wird Modal / Form State: Full rotation with manual start point
   const [showWirdCustomizer, setShowWirdCustomizer] = useState(false);
-  const [customWirdType, setCustomWirdType] = useState<'auto' | 'custom_juz'>('auto');
-  const [customStartJuz, setCustomStartJuz] = useState<number>(1);
-  const [customEndJuz, setCustomEndJuz] = useState<number>(3);
+  const [startMode, setStartMode] = useState<'beginning' | 'custom_start'>('beginning');
+  const [selectedStartJuz, setSelectedStartJuz] = useState<number>(1);
   const [editCurrentRub, setEditCurrentRub] = useState<number>(1);
   const [isSavingWirdCustomization, setIsSavingWirdCustomization] = useState(false);
   const [wirdSaveSuccess, setWirdSaveSuccess] = useState(false);
 
-  // Initialize wird customizer values when student loads or modal opens
+  // Initialize wird customizer values when student loads
   React.useEffect(() => {
     if (student) {
-      setCustomWirdType(student.customWirdType || 'auto');
-      if (student.customWirdJuzRange) {
-        setCustomStartJuz(student.customWirdJuzRange[0]);
-        setCustomEndJuz(student.customWirdJuzRange[1]);
-      } else {
-        const studentJuz = Math.max(1, Math.min(30, Math.ceil((student.currentRub || 1) / 8)));
-        setCustomStartJuz(Math.max(1, studentJuz - 2));
-        setCustomEndJuz(studentJuz);
-      }
+      const curStart = student.customWirdStartJuz || (student.customWirdJuzRange ? student.customWirdJuzRange[0] : 1);
+      setSelectedStartJuz(curStart);
+      setStartMode(curStart > 1 ? 'custom_start' : 'beginning');
       setEditCurrentRub(student.currentRub || 1);
     }
-  }, [student?.id, student?.currentRub, student?.customWirdType, student?.customWirdJuzRange]);
+  }, [student?.id, student?.currentRub, student?.customWirdType, student?.customWirdStartJuz, student?.customWirdJuzRange]);
 
   const handleSaveWirdCustomization = async () => {
     if (!student) return;
     setIsSavingWirdCustomization(true);
     try {
+      const studentJuz = Math.max(1, Math.min(30, Math.ceil((editCurrentRub || 1) / 8)));
+      const finalStartJuz = startMode === 'custom_start' ? Math.max(1, Math.min(studentJuz, selectedStartJuz)) : 1;
       const partialUpdate: any = {
         currentRub: editCurrentRub,
         completedRubCount: Math.max(0, editCurrentRub - 1),
-        customWirdType,
+        customWirdType: finalStartJuz > 1 ? 'custom_start' : 'auto',
+        customWirdStartJuz: finalStartJuz,
+        customWirdJuzRange: null,
       };
-      if (customWirdType === 'custom_juz') {
-        const start = Math.min(customStartJuz, customEndJuz);
-        const end = Math.max(customStartJuz, customEndJuz);
-        partialUpdate.customWirdJuzRange = [start, end];
-      } else {
-        partialUpdate.customWirdJuzRange = null;
-      }
 
       await updateStudent(student.id, partialUpdate);
       setWirdSaveSuccess(true);
@@ -1056,60 +1047,85 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
                       </p>
                     </div>
 
-                    {/* 2. Daily Revision Plan Mode */}
-                    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
-                      <label className="block text-xs font-bold text-stone-800 mb-1.5">
-                        نوع خطة الورد اليومي:
-                      </label>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-xs font-medium text-stone-800 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="wirdType"
-                            checked={customWirdType === 'auto'}
-                            onChange={() => setCustomWirdType('auto')}
-                            className="text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <span>خطة الحلقة التلقائية (الأرباع السابقة لموضع الحفظ)</span>
+                    {/* 2. Daily Revision Plan Mode: Full rotation with manual start point */}
+                    <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-800 mb-1">
+                          دوران الورد اليومي (3 أجزاء / 24 ربعاً في كامل المحفوظ):
                         </label>
-                        <label className="flex items-center gap-2 text-xs font-medium text-stone-800 cursor-pointer">
+                        <p className="text-[11px] text-stone-500 leading-relaxed">
+                          يدور الورد تلقائياً في كامل محفوظك. يمكنك اختيار البدء من أول المحفوظ أو تحديد جزء بداية الدوران يدوياً.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                          startMode === 'beginning' ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold' : 'bg-white border-stone-200 text-stone-700'
+                        }`}>
                           <input
                             type="radio"
-                            name="wirdType"
-                            checked={customWirdType === 'custom_juz'}
-                            onChange={() => setCustomWirdType('custom_juz')}
-                            className="text-emerald-600 focus:ring-emerald-500"
+                            name="wirdStartMode"
+                            checked={startMode === 'beginning'}
+                            onChange={() => {
+                              setStartMode('beginning');
+                              setSelectedStartJuz(1);
+                            }}
+                            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                           />
-                          <span>خطة مخصصة بالأجزاء (تحديد نطاق أجزاء للمراجعة)</span>
+                          <div>
+                            <span className="text-xs block">🌱 من بداية المحفوظ (الجزء 1)</span>
+                            <span className="text-[10px] text-stone-500 font-normal">دوران متسلسل من أول جزء</span>
+                          </div>
+                        </label>
+
+                        <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                          startMode === 'custom_start' ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold' : 'bg-white border-stone-200 text-stone-700'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="wirdStartMode"
+                            checked={startMode === 'custom_start'}
+                            onChange={() => setStartMode('custom_start')}
+                            className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                          />
+                          <div>
+                            <span className="text-xs block">🎯 تحديد بداية يدوية + دوران ذكي</span>
+                            <span className="text-[10px] text-stone-500 font-normal">تحديد الجزء الأول ثم يدور النظام في الباقي</span>
+                          </div>
                         </label>
                       </div>
 
-                      {customWirdType === 'custom_juz' && (
-                        <div className="mt-3 pt-3 border-t border-stone-200 flex items-center gap-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-stone-600">من الجزء:</span>
+                      {startMode === 'custom_start' && (
+                        <div className="pt-2 border-t border-stone-200 space-y-2 animate-in fade-in">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-stone-700">البدء من الجزء:</span>
                             <select
-                              value={customStartJuz}
-                              onChange={(e) => setCustomStartJuz(Number(e.target.value))}
-                              className="px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-800 cursor-pointer"
+                              value={selectedStartJuz}
+                              onChange={(e) => setSelectedStartJuz(Number(e.target.value))}
+                              className="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-amber-950 cursor-pointer focus:ring-2 focus:ring-amber-500"
                             >
-                              {Array.from({ length: 30 }).map((_, i) => (
+                              {Array.from({ length: Math.max(1, Math.min(30, Math.ceil((editCurrentRub || 1) / 8))) }).map((_, i) => (
                                 <option key={i + 1} value={i + 1}>الجزء {i + 1}</option>
                               ))}
                             </select>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-stone-600">إلى الجزء:</span>
-                            <select
-                              value={customEndJuz}
-                              onChange={(e) => setCustomEndJuz(Number(e.target.value))}
-                              className="px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold text-stone-800 cursor-pointer"
-                            >
-                              {Array.from({ length: 30 }).map((_, i) => (
-                                <option key={i + 1} value={i + 1}>الجزء {i + 1}</option>
-                              ))}
-                            </select>
-                          </div>
+
+                          {/* Cycle preview in student portal */}
+                          {(() => {
+                            const cyclePreview = getStudentRotatedCycle(editCurrentRub, selectedStartJuz);
+                            return (
+                              <div className="p-2.5 bg-white rounded-xl border border-stone-200 text-[11px] text-stone-600 space-y-1">
+                                <div className="font-bold text-stone-800 text-[10px]">ترتيب دورة الختمة المتولدة ({cyclePreview.length} أيام):</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {cyclePreview.map((c) => (
+                                    <span key={c.dayNumber} className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md text-[10px]">
+                                      يوم {c.dayNumber}: {c.shortLabel}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

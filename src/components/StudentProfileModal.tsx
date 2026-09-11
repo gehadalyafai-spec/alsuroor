@@ -8,7 +8,8 @@ import {
   formatQuranProgress,
   formatRemainingQuranProgress,
   formatCurrentRubDetailed,
-  getCycleDaysBreakdown 
+  getCycleDaysBreakdown,
+  getStudentRotatedCycle
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
 import { QuranQuarterSelector } from './QuranQuarterSelector';
@@ -51,12 +52,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
   const [editPin, setEditPin] = useState(student?.pin || '');
   const [editNotes, setEditNotes] = useState(student?.notes || '');
 
-  // Custom Wird Modal State
-  const [wirdType, setWirdType] = useState<'auto' | 'custom_juz'>(
-    student?.customWirdType === 'custom_juz' ? 'custom_juz' : 'auto'
+  // Custom Wird Modal State: Full Rotation with manual start point
+  const currentStart = student?.customWirdStartJuz || (student?.customWirdJuzRange ? student.customWirdJuzRange[0] : 1);
+  const [startMode, setStartMode] = useState<'beginning' | 'custom_start'>(
+    currentStart > 1 ? 'custom_start' : 'beginning'
   );
-  const [startJuz, setStartJuz] = useState<number>(student?.customWirdJuzRange ? student.customWirdJuzRange[0] : 1);
-  const [endJuz, setEndJuz] = useState<number>(student?.customWirdJuzRange ? student.customWirdJuzRange[1] : 3);
+  const [selectedStartJuz, setSelectedStartJuz] = useState<number>(currentStart);
 
   if (!student) return null;
 
@@ -98,19 +99,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
   };
 
   const handleSaveCustomWird = () => {
-    if (wirdType === 'auto') {
-      updateStudent(student.id, {
-        customWirdType: 'auto',
-        customWirdJuzRange: undefined,
-      });
-    } else {
-      const minJuz = Math.min(startJuz, endJuz);
-      const maxJuz = Math.max(startJuz, endJuz);
-      updateStudent(student.id, {
-        customWirdType: 'custom_juz',
-        customWirdJuzRange: [minJuz, maxJuz],
-      });
-    }
+    const finalStartJuz = startMode === 'custom_start' ? Math.max(1, Math.min(stats.currentJuz, selectedStartJuz)) : 1;
+    updateStudent(student.id, {
+      customWirdType: finalStartJuz > 1 ? 'custom_start' : 'auto',
+      customWirdStartJuz: finalStartJuz,
+      customWirdJuzRange: undefined,
+    });
     setShowWirdModal(false);
   };
 
@@ -326,29 +320,30 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
           </div>
 
           {/* Custom Daily Wird (ورد المراجعة اليومي) Management Card */}
-          <div className="bg-gradient-to-r from-amber-50 via-orange-50/40 to-stone-50 border border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50/40 to-stone-50 border border-emerald-300/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-700 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                 <Layers className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-bold text-xs text-amber-950">ورد المراجعة اليومي للطالب</h4>
-                  {student.customWirdType === 'custom_juz' && student.customWirdJuzRange ? (
-                    <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2.5 py-0.5 rounded-md border border-amber-400">
-                      مخصص: الجزء {student.customWirdJuzRange[0]} - {student.customWirdJuzRange[1]}
+                  <h4 className="font-bold text-xs text-emerald-950">ورد المراجعة اليومي للطالب</h4>
+                  {student.customWirdStartJuz && student.customWirdStartJuz > 1 ? (
+                    <span className="text-[10px] bg-amber-100 text-amber-950 font-bold px-2.5 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-700" />
+                      <span>دوران كامل (يبدأ من الجزء {student.customWirdStartJuz})</span>
                     </span>
                   ) : (
                     <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-md border border-emerald-300">
-                      تلقائي (نظام الدوران الذكي 24 ربعاً)
+                      دوران كامل تلقائي (يبدأ من الجزء 1)
                     </span>
                   )}
                 </div>
                 <p className="text-[11px] text-stone-600 mt-1 leading-relaxed">
-                  {student.customWirdType === 'custom_juz' && student.customWirdJuzRange ? (
-                    <>الورد اليومي محدد حالياً على <strong className="text-amber-900 font-bold">الجزء {student.customWirdJuzRange[0]} إلى {student.customWirdJuzRange[1]}</strong>. يمكنك تعديله إلى (1-2-3 أو 7-8-9 أو أي أجزاء أخرى) أو إعادته تلقائياً.</>
+                  {student.customWirdStartJuz && student.customWirdStartJuz > 1 ? (
+                    <>يدور الورد في <strong className="text-emerald-900 font-bold">كامل محفوظ الطالب</strong> (3 أجزاء يومياً) بدءاً من <strong className="text-amber-900 font-bold">الجزء {student.customWirdStartJuz}</strong> بالترتيب التلقائي حتى ختم كل المحفوظ ثم العودة.</>
                   ) : (
-                    <>يعتمد ورد الطالب على أرباعه المحفوظة تلقائياً بنظام 3 أجزاء (24 ربعاً) لكل يوم. يمكنك تخصيص الأجزاء يدوياً.</>
+                    <>يدور الورد تلقائياً في <strong className="text-emerald-900 font-bold">كامل أجزاء الطالب المحفوظة</strong> بنظام 3 أجزاء (24 ربعاً) لكل يوم بالتتابع المتسلسل.</>
                   )}
                 </p>
               </div>
@@ -358,17 +353,15 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
               type="button"
               id="open-custom-wird-modal-btn"
               onClick={() => {
-                setWirdType(student.customWirdType === 'custom_juz' ? 'custom_juz' : 'auto');
-                if (student.customWirdJuzRange) {
-                  setStartJuz(student.customWirdJuzRange[0]);
-                  setEndJuz(student.customWirdJuzRange[1]);
-                }
+                const cur = student.customWirdStartJuz || (student.customWirdJuzRange ? student.customWirdJuzRange[0] : 1);
+                setSelectedStartJuz(cur);
+                setStartMode(cur > 1 ? 'custom_start' : 'beginning');
                 setShowWirdModal(true);
               }}
-              className="px-4 py-2.5 text-xs font-bold text-white bg-amber-700 hover:bg-amber-600 active:bg-amber-800 rounded-xl flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
+              className="px-4 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 rounded-xl flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
             >
-              <Settings className="w-3.5 h-3.5 text-amber-200" />
-              <span>تعديل وتخصيص الورد</span>
+              <Settings className="w-3.5 h-3.5 text-emerald-200" />
+              <span>تعديل وتخصيص نقطة بداية الورد</span>
             </button>
           </div>
 
@@ -779,20 +772,23 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
         </div>
       )}
 
-      {/* Modal for Customizing Student's Daily Wird (تخصيص الورد اليومي) */}
+      {/* Modal for Customizing Student's Daily Wird Starting Point (تخصيص نقطة بداية دوران الورد) */}
       {showWirdModal && (
         <div className="fixed inset-0 z-60 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-stone-200 w-full max-w-lg shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+          <div 
+            className="bg-white rounded-3xl border border-emerald-200 w-full max-w-lg shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150"
+            id="custom-wird-config-dialog"
+          >
             {/* Header */}
-            <div className="bg-amber-950 text-white p-5 flex items-center justify-between">
+            <div className="bg-emerald-900 text-white p-5 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-700 text-white flex items-center justify-center shadow-xs">
-                  <Layers className="w-5 h-5 text-amber-200" />
+                <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+                  <Layers className="w-5 h-5 text-emerald-200" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">تخصيص ورد المراجعة اليومي</h3>
-                  <p className="text-xs text-amber-300/90 font-normal">
-                    الطالب: <strong className="text-white">{student.name}</strong>
+                  <h3 className="font-bold text-base font-['Amiri',serif]">دوران الورد الذكي ونقطة البداية</h3>
+                  <p className="text-xs text-emerald-300/90 font-normal">
+                    دوران كامل لجميع الأجزاء المحفوظة للطالب: <strong className="text-white">{student.name}</strong>
                   </p>
                 </div>
               </div>
@@ -800,7 +796,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
               <button
                 type="button"
                 onClick={() => setShowWirdModal(false)}
-                className="text-amber-300 hover:text-white p-1.5 rounded-lg cursor-pointer transition-colors"
+                className="text-emerald-300 hover:text-white p-1.5 rounded-lg cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -808,121 +804,159 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
 
             {/* Body */}
             <div className="p-5 space-y-4 text-right max-h-[75vh] overflow-y-auto">
-              <p className="text-xs text-stone-600 leading-relaxed">
-                يمكنك هنا تغيير ورد الطالب اليومي إلى أجزاء محددة (مثل: الجزء 1-2-3 أو 7-8-9) أو العودة للنظام التلقائي الذكي.
-              </p>
+              <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-3.5 text-xs text-emerald-950 leading-relaxed space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>نظام الدوران الذكي الشامل (3 أجزاء / 24 ربعاً يومياً):</span>
+                </div>
+                <p className="text-[11px] text-stone-600">
+                  يدور الورد تلقائياً في <strong className="text-emerald-900 font-bold">كامل الأجزاء المحفوظة للطالب ({stats.currentJuz} أجزاء)</strong> دون استثناء أي جزء محفوظ. يمكنك تحديد من أين تبدأ الدورة يدوياً، ثم يتولى النظام الدوران التلقائي المتسلسل لما تبقى من المحفوظ حتى الختم ثم العودة.
+                </p>
+              </div>
 
-              {/* Choose Mode */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Choose Start Mode */}
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setWirdType('auto')}
-                  className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                    wirdType === 'auto'
-                      ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-400/40 text-emerald-950'
+                  onClick={() => {
+                    setStartMode('beginning');
+                    setSelectedStartJuz(1);
+                  }}
+                  className={`p-3.5 rounded-2xl border text-right transition-all cursor-pointer ${
+                    startMode === 'beginning'
+                      ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-400/40 text-emerald-950 shadow-xs'
                       : 'bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-700'
                   }`}
                 >
-                  <div className="font-bold text-xs">🌟 تلقائي (ذكي)</div>
-                  <div className="text-[10px] text-stone-500 mt-1">
-                    دوران تلقائي 3 أجزاء (24 ربعاً) بحسب محفوظ الطالب
+                  <div className="font-bold text-xs flex items-center gap-1.5">
+                    <span>🌱</span>
+                    <span>من بداية المحفوظ (الجزء 1)</span>
+                  </div>
+                  <div className="text-[10px] text-stone-500 mt-1 leading-normal">
+                    يبدأ الدوران من أول القرآن المحفوظ (الفاتحة والبقرة) ثم يتتابع
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setWirdType('custom_juz')}
-                  className={`p-3 rounded-2xl border text-right transition-all cursor-pointer ${
-                    wirdType === 'custom_juz'
-                      ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-400/40 text-amber-950'
+                  onClick={() => {
+                    setStartMode('custom_start');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-right transition-all cursor-pointer ${
+                    startMode === 'custom_start'
+                      ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-400/40 text-amber-950 shadow-xs'
                       : 'bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-700'
                   }`}
                 >
-                  <div className="font-bold text-xs">📖 تخصيص أجزاء معينة</div>
-                  <div className="text-[10px] text-stone-500 mt-1">
-                    تثبيت ورد الطالب على باقة أجزاء مثل 7-8-9 أو 1-2-3
+                  <div className="font-bold text-xs flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>تحديد بداية يدوية + دوران ذكي</span>
+                  </div>
+                  <div className="text-[10px] text-stone-500 mt-1 leading-normal">
+                    أنت تحدد من أين يبدأ، ثم يدور النظام تلقائياً في باقي الأجزاء
                   </div>
                 </button>
               </div>
 
-              {/* Custom Juz Settings */}
-              {wirdType === 'custom_juz' && (
-                <div className="bg-amber-50/50 border border-amber-200 rounded-2xl p-4 space-y-3 animate-in fade-in">
-                  <div className="font-bold text-xs text-amber-950">اختر من الباقات الثلاثية السريعة:</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { label: 'الجزء 1 - 2 - 3', start: 1, end: 3 },
-                      { label: 'الجزء 4 - 5 - 6', start: 4, end: 6 },
-                      { label: 'الجزء 7 - 8 - 9', start: 7, end: 9 },
-                      { label: 'الجزء 10 - 11 - 12', start: 10, end: 12 },
-                      { label: 'الجزء 13 - 14 - 15', start: 13, end: 15 },
-                      { label: 'الجزء 28 - 29 - 30', start: 28, end: 30 },
-                    ].map((preset) => {
-                      const isSelected = startJuz === preset.start && endJuz === preset.end;
+              {/* Manual Start Point Selection */}
+              {startMode === 'custom_start' && (
+                <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3 animate-in fade-in">
+                  <div className="font-bold text-xs text-amber-950">
+                    اختر نقطة بداية الدوران من أجزاء الطالب المحفوظة (1 إلى {stats.currentJuz}):
+                  </div>
+
+                  {/* Quick block presets that fit within student's memorized range */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from({ length: Math.ceil(stats.currentJuz / 3) }).map((_, idx) => {
+                      const blockStartJuz = idx * 3 + 1;
+                      const blockEndJuz = Math.min(stats.currentJuz, (idx + 1) * 3);
+                      const isSelected = selectedStartJuz === blockStartJuz;
                       return (
                         <button
-                          key={preset.label}
+                          key={blockStartJuz}
                           type="button"
-                          onClick={() => {
-                            setStartJuz(preset.start);
-                            setEndJuz(preset.end);
-                          }}
-                          className={`p-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                          onClick={() => setSelectedStartJuz(blockStartJuz)}
+                          className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                              ? 'bg-amber-700 text-white border-amber-800 shadow-xs ring-2 ring-amber-400/50'
                               : 'bg-white text-stone-800 border-amber-200 hover:bg-amber-100/60'
                           }`}
                         >
-                          {preset.label}
+                          البدء من ج{blockStartJuz} ({blockStartJuz === blockEndJuz ? `ج${blockStartJuz}` : `ج${blockStartJuz}-${blockEndJuz}`})
                         </button>
                       );
                     })}
                   </div>
 
-                  <div className="pt-2 border-t border-amber-200/70">
-                    <div className="font-bold text-xs text-amber-950 mb-2">أو حدد نطاق الأجزاء يدوياً:</div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">من الجزء:</label>
-                        <select
-                          value={startJuz}
-                          onChange={(e) => setStartJuz(Number(e.target.value))}
-                          className="w-full p-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500"
-                        >
-                          {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
-                            <option key={j} value={j}>
-                              الجزء {j}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-stone-600 mb-1">إلى الجزء:</label>
-                        <select
-                          value={endJuz}
-                          onChange={(e) => setEndJuz(Number(e.target.value))}
-                          className="w-full p-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500"
-                        >
-                          {Array.from({ length: 30 }, (_, i) => i + 1).map((j) => (
-                            <option key={j} value={j}>
-                              الجزء {j}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Summary preview */}
-                  <div className="p-3 bg-white rounded-xl border border-amber-200 text-xs text-amber-900 font-semibold flex items-center justify-between">
-                    <span>الورد الناتج للمشرف والطالب:</span>
-                    <span className="bg-amber-100 text-amber-950 px-2.5 py-1 rounded-lg border border-amber-300 font-bold">
-                      {startJuz === endJuz ? `الجزء ${startJuz}` : `الجزء ${Math.min(startJuz, endJuz)} - ${Math.max(startJuz, endJuz)}`}
-                    </span>
+                  {/* Fine-grained Juz Selector */}
+                  <div className="pt-2 border-t border-amber-200/80 flex items-center gap-3">
+                    <label className="text-xs font-bold text-stone-700 shrink-0">
+                      أو حدد الجزء الدقيق لبدء الدورة:
+                    </label>
+                    <select
+                      value={selectedStartJuz}
+                      onChange={(e) => setSelectedStartJuz(Number(e.target.value))}
+                      className="flex-1 p-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                    >
+                      {Array.from({ length: stats.currentJuz }, (_, i) => i + 1).map((j) => (
+                        <option key={j} value={j}>
+                          الجزء {j} {j === 1 ? '(أول المحفوظ)' : ''} {j === stats.currentJuz ? '(آخر جزء محفوظ)' : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
+
+              {/* Live Cycle Rotation Preview (معاينة تسلسل الدورة الكاملة) */}
+              {(() => {
+                const effectiveStart = startMode === 'custom_start' ? selectedStartJuz : 1;
+                const cycleDays = getStudentRotatedCycle(student.currentRub, effectiveStart);
+                return (
+                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-xs text-stone-800 flex items-center gap-1.5">
+                        <Compass className="w-4 h-4 text-emerald-600" />
+                        <span>معاينة تسلسل دورة الختمة الكاملة ({cycleDays.length} أيام):</span>
+                      </div>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-md">
+                        دوران كامل لـ {stats.currentJuz} أجزاء
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {cycleDays.map((cd, index) => (
+                        <div 
+                          key={cd.dayNumber}
+                          className={`p-2 rounded-xl text-[11px] flex items-center justify-between border ${
+                            index === 0
+                              ? 'bg-emerald-100/70 border-emerald-300 font-bold text-emerald-950'
+                              : 'bg-white border-stone-200 text-stone-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              index === 0 ? 'bg-emerald-700 text-white' : 'bg-stone-200 text-stone-700'
+                            }`}>
+                              {cd.dayNumber}
+                            </span>
+                            <span>{cd.description}</span>
+                          </div>
+                          {index === 0 && (
+                            <span className="text-[10px] bg-emerald-700 text-white font-bold px-2 py-0.5 rounded-md">
+                              نقطة البداية
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="text-[10px] text-stone-500 text-center">
+                      * يكتمل في اليوم {cycleDays.length} دوران كامل المحفوظ ويعود تلقائياً لليوم الأول بسلاسة.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Footer */}
@@ -939,10 +973,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                 type="button"
                 id="save-custom-wird-btn"
                 onClick={handleSaveCustomWird}
-                className="px-5 py-2 text-xs font-bold text-white bg-amber-700 hover:bg-amber-600 active:bg-amber-800 rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                className="px-5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>حفظ وتطبيق الورد للطالب</span>
+                <span>حفظ وتطبيق الدوران الذكي</span>
               </button>
             </div>
           </div>

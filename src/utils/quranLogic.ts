@@ -396,7 +396,41 @@ export function getCycleDaysBreakdown(currentRub: number): CycleDayInfo[] {
 }
 
 /**
+ * Calculates the starting block index for the student's rotation cycle based on manual start point.
+ */
+export function getStudentStartBlockIndex(studentCurrentRub: number, startJuz?: number): number {
+  if (!startJuz || startJuz <= 1) return 0;
+  const cycleBreakdown = getCycleDaysBreakdown(studentCurrentRub);
+  if (cycleBreakdown.length <= 1) return 0;
+
+  const targetRub = Math.max(1, (startJuz - 1) * 8 + 1);
+  const foundIndex = cycleBreakdown.findIndex(b => b.startRub <= targetRub && b.endRub >= targetRub);
+  return foundIndex >= 0 ? foundIndex : 0;
+}
+
+/**
+ * Returns the full ordered cycle days starting from the chosen startJuz.
+ */
+export function getStudentRotatedCycle(studentCurrentRub: number, startJuz?: number): CycleDayInfo[] {
+  const cycleBreakdown = getCycleDaysBreakdown(studentCurrentRub);
+  if (cycleBreakdown.length <= 1) return cycleBreakdown;
+  const startIndex = getStudentStartBlockIndex(studentCurrentRub, startJuz);
+  if (startIndex === 0) return cycleBreakdown;
+
+  const rotated: CycleDayInfo[] = [];
+  for (let i = 0; i < cycleBreakdown.length; i++) {
+    const idx = (startIndex + i) % cycleBreakdown.length;
+    rotated.push({
+      ...cycleBreakdown[idx],
+      dayNumber: i + 1,
+    });
+  }
+  return rotated;
+}
+
+/**
  * Calculates what the student's daily self-revision (ورد المراجعة الذاتية) is for any specific day.
+ * Implements full rotation across all memorized parts with support for a manually selected starting point.
  */
 export function getDailyRevisionAssignment(
   studentCurrentRub: number,
@@ -419,32 +453,7 @@ export function getDailyRevisionAssignment(
 } {
   const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3; // Sunday or Wednesday
 
-  // 1. Check if the student has a custom assigned daily wird (ورد مخصص يدوياً)
-  if (student?.customWirdType === 'custom_juz' && student.customWirdJuzRange) {
-    const [startJuz, endJuz] = student.customWirdJuzRange;
-    const startRub = Math.max(1, (startJuz - 1) * 8 + 1);
-    const endRub = Math.min(240, endJuz * 8);
-    const assignedRubs: number[] = [];
-    for (let r = startRub; r <= endRub; r++) {
-      assignedRubs.push(r);
-    }
-    const formatted = formatRubsToJuzDescription(assignedRubs, 1);
-    return {
-      assignedRubs,
-      totalCount: assignedRubs.length,
-      distinctCount: assignedRubs.length,
-      repeatCount: 1,
-      description: formatted.fullDescription,
-      shortLabel: formatted.shortLabel,
-      isCircleDay,
-      isFullJuz: formatted.isFullJuz,
-      isCustomWird: true,
-      cycleDayNumber: 1,
-      totalCycleDays: 1,
-      isRemainderDay: false,
-    };
-  }
-
+  // 1. Custom quarter list override if explicitly provided
   if (student?.customWirdType === 'custom_rubs' && student.customWirdRubs && student.customWirdRubs.length > 0) {
     const assignedRubs = student.customWirdRubs;
     const repeatCount = student.customWirdRepeat || 1;
@@ -465,14 +474,23 @@ export function getDailyRevisionAssignment(
     };
   }
 
-  // 2. Standard Pedagogical Algorithm
+  // 2. Full Memorized Quran Smart Rotation (دوران كامل الأجزاء المحفوظة)
+  // Supports manual starting point (تحديد نقطة البداية يدوياً ثم الدوران التلقائي الذكي لكامل المحفوظ)
   const safeRub = Math.max(1, studentCurrentRub);
   const cycleBreakdown = getCycleDaysBreakdown(safeRub);
   const totalCycleDays = cycleBreakdown.length;
 
-  // Determine index in cycle
-  const cycleIndex = ((cycleOffsetDay % totalCycleDays) + totalCycleDays) % totalCycleDays;
+  // Determine starting point:
+  // If user set customWirdStartJuz (or legacy customWirdJuzRange[0]), use that to determine starting block
+  const effectiveStartJuz = student?.customWirdStartJuz || (student?.customWirdJuzRange ? student.customWirdJuzRange[0] : 1);
+  const startBlockIndex = getStudentStartBlockIndex(safeRub, effectiveStartJuz);
+
+  // Determine index in cycle with startBlockIndex offset
+  const cycleIndex = ((startBlockIndex + cycleOffsetDay) % totalCycleDays + totalCycleDays) % totalCycleDays;
   const currentCycleDay = cycleBreakdown[cycleIndex] || cycleBreakdown[0];
+
+  const hasCustomStart = startBlockIndex > 0;
+  const currentCycleDayNumber = ((cycleIndex - startBlockIndex) % totalCycleDays + totalCycleDays) % totalCycleDays + 1;
 
   return {
     assignedRubs: currentCycleDay.rubs,
@@ -483,9 +501,9 @@ export function getDailyRevisionAssignment(
     shortLabel: currentCycleDay.shortLabel,
     isCircleDay,
     isFullJuz: !currentCycleDay.isRemainder && currentCycleDay.distinctCount >= 8,
-    isCustomWird: false,
-    cycleDayNumber: currentCycleDay.dayNumber,
-    totalCycleDays: currentCycleDay.totalDays,
+    isCustomWird: hasCustomStart,
+    cycleDayNumber: currentCycleDayNumber,
+    totalCycleDays: totalCycleDays,
     isRemainderDay: currentCycleDay.isRemainder,
   };
 }

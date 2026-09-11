@@ -66,7 +66,7 @@ export async function registerStudentsInFirestoreRegistry(
     const normCode = normalizeStudentCode(rawCode);
 
     // Fingerprint detects changes to student code, rub, pin, phone, name, and custom wird settings
-    const fingerprint = `${s.id}_${normCode}_${s.currentRub || 1}_${s.completedRubCount || 0}_${s.name}_${s.pin || ''}_${s.customWirdType || 'auto'}_${JSON.stringify(s.customWirdJuzRange || [])}`;
+    const fingerprint = `${s.id}_${normCode}_${s.currentRub || 1}_${s.completedRubCount || 0}_${s.name}_${s.pin || ''}_${s.customWirdType || 'auto'}_${s.customWirdStartJuz || 1}_${JSON.stringify(s.customWirdJuzRange || [])}`;
     if (syncedFingerprints.has(fingerprint)) continue;
 
     const primaryKey = normCode || s.id;
@@ -84,6 +84,7 @@ export async function registerStudentsInFirestoreRegistry(
       parentPhone: s.parentPhone || '',
       pin: s.pin || '',
       customWirdType: s.customWirdType || 'auto',
+      customWirdStartJuz: s.customWirdStartJuz || 1,
       customWirdJuzRange: s.customWirdJuzRange || null,
       customWirdRubs: s.customWirdRubs || null,
       customWirdRepeat: s.customWirdRepeat || 1,
@@ -520,6 +521,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   currentRub: regData.currentRub !== undefined ? regData.currentRub : s.currentRub,
                   completedRubCount: regData.completedRubCount !== undefined ? regData.completedRubCount : s.completedRubCount,
                   customWirdType: regData.customWirdType || s.customWirdType,
+                  customWirdStartJuz: regData.customWirdStartJuz || s.customWirdStartJuz,
                   customWirdJuzRange: regData.customWirdJuzRange || s.customWirdJuzRange,
                   customWirdRubs: regData.customWirdRubs || s.customWirdRubs,
                 };
@@ -1454,6 +1456,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         parentPhone: targetStudent.parentPhone || '',
         pin: targetStudent.pin || '',
         customWirdType: targetStudent.customWirdType || 'auto',
+        customWirdStartJuz: targetStudent.customWirdStartJuz || 1,
         customWirdJuzRange: targetStudent.customWirdJuzRange || null,
         customWirdRubs: targetStudent.customWirdRubs || null,
         customWirdRepeat: targetStudent.customWirdRepeat || 1,

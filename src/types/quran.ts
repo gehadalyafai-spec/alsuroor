@@ -30,8 +30,9 @@ export interface Student {
   notes: string;
   avatarColor: string;
   // Custom Daily Wird Override (تخصيص الورد اليومي للمراجعة)
-  customWirdType?: 'auto' | 'custom_juz' | 'custom_rubs';
-  customWirdJuzRange?: [number, number]; // e.g. [7, 9] for الجزء 7-8-9
+  customWirdType?: 'auto' | 'custom_start' | 'custom_juz' | 'custom_rubs';
+  customWirdStartJuz?: number; // 1 to 30: Starting Juz for the full smart cycle rotation (نقطة بداية دوران كامل المحفوظ)
+  customWirdJuzRange?: [number, number]; // legacy support
   customWirdRubs?: number[]; // custom quarters
   customWirdRepeat?: number; // custom repeat count
 }
