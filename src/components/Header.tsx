@@ -7,13 +7,13 @@ import {
   Download, Upload, RotateCcw, Cloud, CloudOff, 
   RefreshCw, LogOut, User, Check, AlertTriangle, ShieldCheck,
   TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles,
-  Palette, Sliders, HardDrive, Save
+  Palette, Sliders
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddModal: () => void;
   onOpenAuthModal?: () => void;
-  onOpenTransferModal?: (tab?: 'backup' | 'offline' | 'send' | 'receive') => void;
+  onOpenTransferModal?: (tab?: 'backup' | 'send' | 'receive') => void;
   onOpenSubmissionsModal?: () => void;
   onOpenSupervisorModal?: () => void;
   onOpenAiModal?: () => void;
@@ -42,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({
     hasUnsavedChanges,
     saveToCloudNow,
     pendingSubmissionsCount,
-    createLocalBackup,
     downloadBackupFile
   } = useQuran();
 
@@ -233,9 +232,9 @@ export const Header: React.FC<HeaderProps> = ({
               id="transfer-data-modal-btn"
               onClick={() => onOpenTransferModal('backup')}
               className={`flex items-center gap-1.5 border text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0 ${headerPreset.btnClass}`}
-              title="النسخ الاحتياطي والاستعادة المحلية ونقل البيانات"
+              title="النسخ الاحتياطي والاستعادة (ملف JSON)"
             >
-              <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
+              <Download className="w-3.5 h-3.5 text-emerald-500" />
               <span className="hidden md:inline">النسخ الاحتياطي</span>
             </button>
           )}
@@ -394,24 +393,10 @@ export const Header: React.FC<HeaderProps> = ({
                       }}
                       className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer"
                     >
-                      <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
-                      النسخ الاحتياطي والاستعادة المحلية
+                      <Download className="w-3.5 h-3.5 text-emerald-600" />
+                      النسخ الاحتياطي والاستعادة (ملف JSON)
                     </button>
                   )}
-
-                  <button
-                    type="button"
-                    id="dropdown-save-local-snapshot-btn"
-                    onClick={() => {
-                      const snap = createLocalBackup('نسخة سريعة من القائمة');
-                      alert(`تم أخذ نسخة احتياطية محلية فورية بنجاح (${snap.studentsCount} طالب)!`);
-                      setShowSettingsMenu(false);
-                    }}
-                    className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5 text-emerald-600" />
-                    حفظ نسخة محلية سريعة الآن
-                  </button>
 
                   <button
                     type="button"
@@ -423,23 +408,8 @@ export const Header: React.FC<HeaderProps> = ({
                     className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-teal-600" />
-                    تصدير نسخة احتياطية (JSON)
+                    تحميل نسخة احتياطية فوراً (.json)
                   </button>
-
-                  {onOpenTransferModal && (
-                    <button
-                      type="button"
-                      id="dropdown-import-json-btn"
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        onOpenTransferModal('offline');
-                      }}
-                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5 text-teal-600" />
-                      استيراد واستعادة من ملف JSON
-                    </button>
-                  )}
 
                   {onOpenTransferModal && (
                     <button

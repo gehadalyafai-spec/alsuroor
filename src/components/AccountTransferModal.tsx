@@ -7,16 +7,15 @@ import { collection, addDoc, query, where, getDocs, doc, setDoc, deleteDoc } fro
 import { 
   Send, Download, Upload, Copy, Check, Mail, Key, Users, 
   RefreshCw, AlertCircle, CheckCircle2, X, ArrowRight, ShieldCheck, Database,
-  HardDrive, Save, RotateCcw, Trash2, Calendar, Clock, FileText, CheckCheck,
-  AlertTriangle, Shield, CheckSquare
+  Clock, CheckSquare
 } from 'lucide-react';
-import { Student, SessionRecord, DailyRevisionRecord, LocalBackupSnapshot } from '../types/quran';
+import { Student, SessionRecord, DailyRevisionRecord } from '../types/quran';
 import { parseBackupJson } from '../utils/backupManager';
 
 interface AccountTransferModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'backup' | 'offline' | 'send' | 'receive';
+  initialTab?: 'backup' | 'send' | 'receive';
 }
 
 interface TransferPackage {
@@ -48,15 +47,11 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
     dailyRevisionRecords, 
     importFromTransferData, 
     saveToCloudNow,
-    createLocalBackup,
-    restoreFromLocalBackup,
-    deleteLocalBackup,
-    getLocalBackups,
     importBackupData,
     downloadBackupFile
   } = useQuran();
 
-  const [activeSubTab, setActiveSubTab] = useState<'backup' | 'offline' | 'send' | 'receive'>(initialTab);
+  const [activeSubTab, setActiveSubTab] = useState<'backup' | 'send' | 'receive'>(initialTab);
 
   // Sync initial tab when modal opens
   useEffect(() => {
@@ -65,13 +60,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
     }
   }, [isOpen, initialTab]);
 
-  // Local Backups State
-  const [backupsList, setBackupsList] = useState<LocalBackupSnapshot[]>([]);
-  const [newBackupName, setNewBackupName] = useState('');
-  const [newBackupNotes, setNewBackupNotes] = useState('');
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [backupActionMsg, setBackupActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [selectedBackupForAction, setSelectedBackupForAction] = useState<LocalBackupSnapshot | null>(null);
 
   // Send State
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -91,16 +80,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
 
   // Offline backup JSON
   const [jsonInput, setJsonInput] = useState('');
-  const [copiedJson, setCopiedJson] = useState(false);
   const [jsonMode, setJsonMode] = useState<'replace' | 'merge'>('replace');
-
-  // Load local backups whenever modal opens or tab changes
-  useEffect(() => {
-    if (isOpen) {
-      const list = getLocalBackups();
-      setBackupsList(list);
-    }
-  }, [isOpen, activeSubTab]);
 
   // Load incoming transfers for current user's email
   useEffect(() => {
@@ -134,78 +114,6 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Create Local Backup
-  const handleCreateBackup = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreatingBackup(true);
-    setBackupActionMsg(null);
-
-    try {
-      const snapshot = createLocalBackup(newBackupName.trim(), newBackupNotes.trim());
-      setBackupsList(getLocalBackups());
-      setNewBackupName('');
-      setNewBackupNotes('');
-      setBackupActionMsg({
-        type: 'success',
-        text: `تم إنشاء النسخة الاحتياطية "${snapshot.name}" بنجاح (${snapshot.studentsCount} طالب).`,
-      });
-    } catch (err: any) {
-      setBackupActionMsg({
-        type: 'error',
-        text: 'تعذر إنشاء النسخة: ' + (err.message || 'خطأ غير معروف'),
-      });
-    } finally {
-      setIsCreatingBackup(false);
-    }
-  };
-
-  // Handle Restore Local Backup
-  const handleRestoreBackup = (backupId: string, mode: 'replace' | 'merge') => {
-    const target = backupsList.find(b => b.id === backupId);
-    if (!target) return;
-
-    const confirmText = mode === 'replace'
-      ? `هل أنت متأكد من استعادة النسخة "${target.name}" واستبدال البيانات الحالية بالكامل؟\n(سيتم أخذ نسخة أمان تلقائية لبياناتك الحالية قبل الاستبدال).`
-      : `هل أنت متأكد من دمج بيانات النسخة "${target.name}" مع الطلاب الحاليين؟`;
-
-    if (!window.confirm(confirmText)) return;
-
-    const success = restoreFromLocalBackup(backupId, mode);
-    if (success) {
-      setBackupsList(getLocalBackups());
-      setBackupActionMsg({
-        type: 'success',
-        text: mode === 'replace'
-          ? `تم استعادة النسخة "${target.name}" بنجاح (${target.studentsCount} طالب)!`
-          : `تم دمج طلاب وسجلات النسخة "${target.name}" مع بياناتك الحالية بنجاح!`,
-      });
-      setSelectedBackupForAction(null);
-    } else {
-      setBackupActionMsg({
-        type: 'error',
-        text: 'فشلت عملية استعادة النسخة، يرجى المحاولة مرة أخرى.',
-      });
-    }
-  };
-
-  // Handle Delete Local Backup
-  const handleDeleteBackup = (backupId: string) => {
-    const target = backupsList.find(b => b.id === backupId);
-    if (!target) return;
-
-    if (!window.confirm(`هل أنت متأكد من حذف النسخة الاحتياطية "${target.name}"؟`)) return;
-
-    deleteLocalBackup(backupId);
-    setBackupsList(getLocalBackups());
-    if (selectedBackupForAction?.id === backupId) {
-      setSelectedBackupForAction(null);
-    }
-    setBackupActionMsg({
-      type: 'success',
-      text: 'تم حذف النسخة بنجاح.',
-    });
-  };
-
   // Handle JSON File Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -226,10 +134,9 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
       const data = res.data;
       if (window.confirm(`تم قراءة الملف بنجاح! يحتوي على ${data.students.length} طالب.\nهل تريد تطبيق الاستيراد بنمط (${jsonMode === 'replace' ? 'استبدال كامل' : 'دمج مع الحاليين'})؟`)) {
         await importBackupData(data, jsonMode);
-        setBackupsList(getLocalBackups());
         setBackupActionMsg({
           type: 'success',
-          text: `تم استيراد ${data.students.length} طالب بنجاح! تم حفظها محلياً وسحابياً.`,
+          text: `تم استيراد واستعادة ${data.students.length} طالب بنجاح! تم حفظها محلياً وسحابياً.`,
         });
       }
     };
@@ -433,26 +340,8 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            <HardDrive className="w-4 h-4" />
-            <span>النسخ والاستعادة المحلية</span>
-            {backupsList.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-stone-200 text-stone-700 text-[10px] flex items-center justify-center">
-                {backupsList.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setActiveSubTab('offline'); setBackupActionMsg(null); }}
-            className={`pb-2.5 px-3 sm:px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all whitespace-nowrap ${
-              activeSubTab === 'offline'
-                ? 'border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            <span>ملف JSON خارجي</span>
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>النسخ الاحتياطي والاستعادة (ملف JSON)</span>
           </button>
 
           <button
@@ -513,206 +402,23 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
             </div>
           )}
 
-          {/* TAB 1: LOCAL BACKUPS & INSTANT RESTORATION */}
+          {/* TAB 1: JSON BACKUP & RESTORE */}
           {activeSubTab === 'backup' && (
             <div className="space-y-6">
               
               {/* Anti-Data-Loss Safety Guarantee Notice */}
-              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900">
-                <Shield className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p className="font-bold text-emerald-950">
-                    ضمان سلامة البيانات عند تعديل التطبيق وإعادة النشر:
+                    ضمان سلامة بيانات الطلاب وحمايتها من الحذف:
                   </p>
                   <p className="text-emerald-800 leading-relaxed">
-                    بيانات الطلاب وسجلاتهم محفوظة بشكل دائم في التخزين المحلي وفي السحابة المشتركة. لن يتم حذف أي طالب عند إعادة نشر التطبيق أو تحديثه، كما يقوم النظام بأخذ نسخة أمان احتياطية تلقائياً قبل أي عملية استعادة أو مسح.
+                    بيانات الطلاب ({students.length} طالب) وكافة جلسات التسميع وأوراد المراجعة محفوظة بشكل دائم في التخزين المحلي وفي السحابة، ولن يتم حذف أي طالب عند تعديل التطبيق أو إعادة نشره. يمكنك هنا تصدير ملف نسخة احتياطية (.json) أو استعادة البيانات في أي وقت.
                   </p>
                 </div>
               </div>
 
-              {/* Form: Create Local Backup Now */}
-              <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
-                    <Save className="w-4 h-4 text-emerald-600" />
-                    <span>إنشاء نسخة احتياطية محلية الآن</span>
-                  </h3>
-                  <span className="text-[11px] text-stone-500 font-medium">
-                    تحفظ كل الطلاب ({students.length}) فوراً
-                  </span>
-                </div>
-
-                <form onSubmit={handleCreateBackup} className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                        اسم النسخة (اختياري):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="مثال: نسخة قبل بدء الاختبارات"
-                        value={newBackupName}
-                        onChange={(e) => setNewBackupName(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                        ملاحظة للنسخة (اختياري):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="مثال: تم إنجاز الجزء الثاني لـ 20 طالباً"
-                        value={newBackupNotes}
-                        onChange={(e) => setNewBackupNotes(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      type="submit"
-                      disabled={isCreatingBackup}
-                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
-                    >
-                      {isCreatingBackup ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      <span>حفظ نسخة احتياطية جديدة</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* History of Saved Local Backups */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-stone-600" />
-                    <span>النسخ الاحتياطية المحفوظة محلياً ({backupsList.length})</span>
-                  </h3>
-                  <span className="text-[11px] text-stone-500">
-                    يمكن استعادة أي نسخة بضغطة زر
-                  </span>
-                </div>
-
-                {backupsList.length === 0 ? (
-                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-6 text-center space-y-2">
-                    <HardDrive className="w-8 h-8 text-stone-400 mx-auto" />
-                    <p className="text-xs font-bold text-stone-600">لا توجد نسخ احتياطية محلية محفوظة بعد.</p>
-                    <p className="text-[11px] text-stone-500 max-w-md mx-auto">
-                      انقر على زر "حفظ نسخة احتياطية جديدة" أعلاه للاحتفاظ بنسخة دائمة من بيانات طلابك وحلقتك.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {backupsList.map((backup) => (
-                      <div 
-                        key={backup.id}
-                        className={`border rounded-2xl p-4 transition-all duration-200 ${
-                          backup.isAutoSnapshot 
-                            ? 'bg-amber-50/40 border-amber-200' 
-                            : 'bg-white border-stone-200 hover:border-emerald-300 shadow-xs'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-stone-900 font-mono">
-                                {backup.name}
-                              </span>
-                              {backup.isAutoSnapshot && (
-                                <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
-                                  أمان تلقائي
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 text-[11px] text-stone-500">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 text-stone-400" />
-                                {new Date(backup.timestamp).toLocaleString('ar-SA')}
-                              </span>
-                              <span className="flex items-center gap-1 font-bold text-emerald-800">
-                                <Users className="w-3 h-3 text-emerald-600" />
-                                {backup.studentsCount} طالب
-                              </span>
-                              <span className="text-stone-400">
-                                {backup.sessionsCount} جلسة • {backup.revisionsCount} ورد
-                              </span>
-                            </div>
-                            {backup.notes && (
-                              <p className="text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1 rounded-lg inline-block mt-1">
-                                {backup.notes}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => handleRestoreBackup(backup.id, 'replace')}
-                              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1"
-                              title="استعادة واستبدال البيانات الحالية بالكامل ببيانات هذه النسخة"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              <span>استعادة كاملة</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRestoreBackup(backup.id, 'merge')}
-                              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-[11px] font-bold rounded-xl border border-stone-300 cursor-pointer transition-colors flex items-center gap-1"
-                              title="دمج طلاب هذه النسخة مع طلابك الحاليين دون مسح الموجودين"
-                            >
-                              <Users className="w-3 h-3 text-stone-500" />
-                              <span>دمج مع الحاليين</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const jsonStr = JSON.stringify(backup.data, null, 2);
-                                const blob = new Blob([jsonStr], { type: 'application/json' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${backup.name.replace(/\s+/g, '_')}.json`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }}
-                              className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl border border-stone-200 cursor-pointer transition-colors"
-                              title="تحميل كملف JSON للجهاز"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteBackup(backup.id)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl border border-rose-200 cursor-pointer transition-colors"
-                              title="حذف هذه النسخة"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 2: OFFLINE JSON FILE IMPORT / EXPORT */}
-          {activeSubTab === 'offline' && (
-            <div className="space-y-6">
-              
               {/* Export Full Current Data Button */}
               <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
                 <div>
@@ -721,7 +427,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
                     <span>تصدير نسخة احتياطية كاملة إلى ملف (JSON)</span>
                   </h3>
                   <p className="text-[11px] text-stone-500 mt-1">
-                    يحفظ ملف .json على جهازك الشخصي يحوي كافة الطلاب ({students.length}) والجلسات والورد.
+                    يحفظ ملف .json على جهازك الشخصي يحوي كافة الطلاب ({students.length}) والجلسات والورد مع تاريخ وساعة التصدير.
                   </p>
                 </div>
                 <button
@@ -736,7 +442,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
 
               {/* Import Options Mode: Replace or Merge */}
               <div className="bg-white border border-stone-200 rounded-2xl p-5 space-y-4 shadow-xs">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
                     <Upload className="w-4 h-4 text-teal-600" />
                     <span>استيراد واستعادة من ملف احتياطي (JSON)</span>
@@ -769,7 +475,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
                 <div className="border-2 border-dashed border-stone-300 hover:border-emerald-500 rounded-2xl p-6 text-center space-y-2 bg-stone-50/50 transition-colors">
                   <Upload className="w-8 h-8 text-stone-400 mx-auto" />
                   <p className="text-xs font-bold text-stone-700">اختر ملف نسخة احتياطية من جهازك (.json)</p>
-                  <p className="text-[11px] text-stone-500">سيتم تطبيق نمط: {jsonMode === 'replace' ? 'استبدال كامل' : 'دمج ذكي مع الطلاب الحاليين'}</p>
+                  <p className="text-[11px] text-stone-500">سيتم تطبيق نمط: {jsonMode === 'replace' ? 'استبدال كامل للبيانات' : 'دمج ذكي مع الطلاب الحاليين'}</p>
                   <label className="inline-block mt-2 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors">
                     <span>استعراض الملفات</span>
                     <input 
@@ -809,11 +515,10 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({
                         const data = res.data;
                         if (window.confirm(`تم قراءة البيانات بنجاح! تحتوي على ${data.students.length} طالب.\nهل تريد تطبيق الاستيراد بنمط (${jsonMode === 'replace' ? 'استبدال كامل' : 'دمج مع الحاليين'})؟`)) {
                           await importBackupData(data, jsonMode);
-                          setBackupsList(getLocalBackups());
                           setJsonInput('');
                           setBackupActionMsg({
                             type: 'success',
-                            text: `تم استيراد وتطبيق ${data.students.length} طالب بنجاح!`,
+                            text: `تم استيراد واستعادة ${data.students.length} طالب بنجاح!`,
                           });
                         }
                       }}

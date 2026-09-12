@@ -39,7 +39,7 @@ function AppContent() {
   } = useQuran();
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [transferInitialTab, setTransferInitialTab] = useState<'backup' | 'offline' | 'send' | 'receive'>('backup');
+  const [transferInitialTab, setTransferInitialTab] = useState<'backup' | 'send' | 'receive'>('backup');
   const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
   const [isSupervisorModalOpen, setIsSupervisorModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
