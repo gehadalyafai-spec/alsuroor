@@ -171,3 +171,25 @@ export interface MutashabihahItem {
   difficulty?: 'easy' | 'medium' | 'hard';
   tags: string[];
 }
+
+export interface LocalBackupSnapshot {
+  id: string;
+  name: string;
+  timestamp: string; // ISO string
+  displayDate: string; // Arabic formatted date & time
+  studentsCount: number;
+  sessionsCount: number;
+  revisionsCount: number;
+  submissionsCount?: number;
+  isAutoSnapshot?: boolean;
+  notes?: string;
+  data: {
+    version: string;
+    exportDate: string;
+    students: Student[];
+    sessionRecords: SessionRecord[];
+    dailyRevisionRecords: DailyRevisionRecord[];
+    rawSubmissions?: StudentSubmission[];
+    selectedDate?: string;
+  };
+}

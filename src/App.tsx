@@ -39,6 +39,7 @@ function AppContent() {
   } = useQuran();
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [transferInitialTab, setTransferInitialTab] = useState<'backup' | 'offline' | 'send' | 'receive'>('backup');
   const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
   const [isSupervisorModalOpen, setIsSupervisorModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -105,7 +106,10 @@ function AppContent() {
       <Header 
         onOpenAddModal={() => setIsAddStudentOpen(true)}
         onOpenAuthModal={!user ? () => setGuestMode(false) : undefined}
-        onOpenTransferModal={() => setIsTransferModalOpen(true)}
+        onOpenTransferModal={(tab) => {
+          setTransferInitialTab(tab || 'backup');
+          setIsTransferModalOpen(true);
+        }}
         onOpenSubmissionsModal={() => setIsSubmissionsModalOpen(true)}
         onOpenSupervisorModal={() => setIsSupervisorModalOpen(true)}
         onOpenAiModal={() => setIsAiModalOpen(true)}
@@ -250,10 +254,11 @@ function AppContent() {
         onClose={() => setIsAddStudentOpen(false)}
       />
 
-      {/* Cross-Account Data Transfer Modal */}
+      {/* Cross-Account Data Transfer & Local Backup Modal */}
       <AccountTransferModal
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
+        initialTab={transferInitialTab}
       />
 
       {/* Student Submissions Approvals Modal for Supervisor */}

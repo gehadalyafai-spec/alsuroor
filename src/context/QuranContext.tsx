@@ -6,7 +6,8 @@ import {
   SessionGrade, 
   RevisionStatus, 
   UserRole, 
-  StudentSubmission 
+  StudentSubmission,
+  LocalBackupSnapshot
 } from '../types/quran';
 import { getRequiredRecitationForSession, getDailyRevisionAssignment } from '../utils/quranLogic';
 import { useAuth } from './AuthContext';
@@ -31,6 +32,13 @@ import {
 } from '../utils/studentCode';
 import { safeGetDoc, safeSetDoc, safeDeleteDoc } from '../utils/firestoreHelper';
 import { isQuotaExceeded, handleFirestoreError, resetQuotaExceeded } from '../utils/quotaManager';
+import { 
+  getLocalBackups, 
+  saveLocalBackup, 
+  deleteLocalBackup, 
+  takeSafetySnapshot, 
+  exportBackupToFile 
+} from '../utils/backupManager';
 
 const STORAGE_KEY = 'quran_circle_tracker_v1';
 
@@ -199,6 +207,12 @@ interface QuranContextType {
   resetToSampleData: () => void;
   exportDataJson: () => string;
   importDataJson: (json: string) => boolean;
+  createLocalBackup: (name?: string, notes?: string) => LocalBackupSnapshot;
+  restoreFromLocalBackup: (backupId: string, mode?: 'replace' | 'merge') => boolean;
+  deleteLocalBackup: (backupId: string) => boolean;
+  getLocalBackups: () => LocalBackupSnapshot[];
+  importBackupData: (data: LocalBackupSnapshot['data'], mode?: 'replace' | 'merge') => Promise<boolean>;
+  downloadBackupFile: (customFilename?: string) => void;
   importFromTransferData: (
     data: {
       students?: Student[];
@@ -361,6 +375,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const activeStudentIdRef = useRef(activeStudentId);
   activeStudentIdRef.current = activeStudentId;
   const resolvedSupervisorAttemptRef = useRef<string | null>(null);
+  const isExplicitWipeRef = useRef<boolean>(false);
 
   // Reactive submissions filtering for supervisor and student
   const submissions = useMemo(() => {
@@ -641,13 +656,69 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Load from Cloud when user logs in with strict preservation of existing user data (via users/{uid}/circleData/main)
   useEffect(() => {
+    let isMounted = true;
+
+    // If user is not authenticated yet (guest mode, pre-auth, or new deployment origin):
+    // Still load from shared central_main_circle or local backups if local state has 0 students!
     if (!user) {
-      isInitialLoadDoneRef.current = true;
-      setSyncStatus('offline');
-      return;
+      const loadInitialSharedData = async () => {
+        try {
+          // If we already have students in local storage, keep them
+          if (studentsRef.current.length > 0) {
+            if (isMounted) {
+              isInitialLoadDoneRef.current = true;
+              setSyncStatus('synced');
+            }
+            return;
+          }
+
+          // Attempt to load from central Firestore circle
+          const centralRef = doc(db, 'circles', 'central_main_circle');
+          const centralSnap = await safeGetDoc(centralRef);
+          if (centralSnap && centralSnap.exists() && Array.isArray(centralSnap.data().students) && centralSnap.data().students.length > 0) {
+            const loadedStudents = filterOutLegacyMocks(centralSnap.data().students, LEGACY_MOCK_STUDENT_IDS);
+            const uniqueLoaded = ensureAllStudentsHaveUniqueCodes(loadedStudents);
+            if (isMounted && uniqueLoaded.length > 0) {
+              setStudents(uniqueLoaded);
+              studentsRef.current = uniqueLoaded;
+              if (Array.isArray(centralSnap.data().sessionRecords)) {
+                setSessionRecords(filterOutLegacyMocks(centralSnap.data().sessionRecords, LEGACY_MOCK_SESSION_IDS));
+              }
+              if (Array.isArray(centralSnap.data().dailyRevisionRecords)) {
+                setDailyRevisionRecords(filterOutLegacyMocks(centralSnap.data().dailyRevisionRecords, LEGACY_MOCK_REVISION_IDS));
+              }
+              setSyncStatus('synced');
+              setLastSyncedAt(new Date());
+            }
+          } else {
+            // Fallback to latest local backup if available
+            const backups = getLocalBackups();
+            if (backups.length > 0 && backups[0].data?.students?.length > 0 && isMounted) {
+              const latest = backups[0].data;
+              const uniqueLoaded = ensureAllStudentsHaveUniqueCodes(latest.students);
+              setStudents(uniqueLoaded);
+              studentsRef.current = uniqueLoaded;
+              if (Array.isArray(latest.sessionRecords)) setSessionRecords(latest.sessionRecords);
+              if (Array.isArray(latest.dailyRevisionRecords)) setDailyRevisionRecords(latest.dailyRevisionRecords);
+              setSyncStatus('synced');
+            }
+          }
+        } catch (err) {
+          console.warn('Initial shared data load warning:', err);
+        } finally {
+          if (isMounted) {
+            isInitialLoadDoneRef.current = true;
+            setIsLoadingCloud(false);
+          }
+        }
+      };
+
+      loadInitialSharedData();
+      return () => {
+        isMounted = false;
+      };
     }
 
-    let isMounted = true;
     isInitialLoadDoneRef.current = false; // Lock saves while fetching
 
     const loadFromFirestore = async () => {
@@ -694,8 +765,16 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
 
+        // Fallback to local backup snapshots if both cloud and state were empty
+        if (!dataToLoad) {
+          const backups = getLocalBackups();
+          if (backups.length > 0 && backups[0].data?.students?.length > 0) {
+            dataToLoad = backups[0].data;
+          }
+        }
+
         if (dataToLoad && isMounted) {
-          if (dataToLoad.students && Array.isArray(dataToLoad.students)) {
+          if (dataToLoad.students && Array.isArray(dataToLoad.students) && dataToLoad.students.length > 0) {
             const loadedStudents = filterOutLegacyMocks(dataToLoad.students, LEGACY_MOCK_STUDENT_IDS);
             const uniqueLoaded = ensureAllStudentsHaveUniqueCodes(loadedStudents);
             
@@ -718,6 +797,14 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 };
               }
               return cloudStu;
+            });
+
+            // Also keep any locally added students that weren't in cloud yet
+            localStudents.forEach(localStu => {
+              if (!mergedStudents.some(s => s.id === localStu.id || (s.accessCode && s.accessCode === localStu.accessCode))) {
+                mergedStudents.push(localStu);
+                hadLocalAdvancement = true;
+              }
             });
 
             setStudents(mergedStudents);
@@ -803,6 +890,14 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const targetSessions = explicitSessions || sessionRecords;
       const targetRevisions = explicitRevisions || dailyRevisionRecords;
       const uniqueStudents = ensureAllStudentsHaveUniqueCodes(targetStudents);
+
+      // ANTI-DATA-LOSS GUARD:
+      // Never overwrite cloud documents with an empty student list unless explicitly confirmed by the user.
+      if (uniqueStudents.length === 0 && !isExplicitWipeRef.current) {
+        console.warn('[QuranSync] Anti-data-loss active: Aborted saving empty student array to cloud.');
+        setSyncStatus('synced');
+        return;
+      }
 
       const payload = {
         students: uniqueStudents,
@@ -1612,6 +1707,19 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToSampleData = () => {
+    // Safety Snapshot before reset!
+    if (students.length > 0) {
+      saveLocalBackup('نسخة أمان تلقائية قبل مسح البيانات', {
+        version: '2.0',
+        exportDate: new Date().toISOString(),
+        students,
+        sessionRecords,
+        dailyRevisionRecords,
+        rawSubmissions,
+        selectedDate,
+      }, true, 'تم حفظ هذه النسخة تلقائياً قبل تنفيذ عملية مسح البيانات');
+    }
+    isExplicitWipeRef.current = true;
     setStudents([]);
     setSessionRecords([]);
     setDailyRevisionRecords([]);
@@ -1622,15 +1730,20 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // ignore
     }
+    setTimeout(() => {
+      isExplicitWipeRef.current = false;
+    }, 3000);
   };
 
   const exportDataJson = () => {
     const backup = {
-      version: '1.0',
+      version: '2.0',
       exportDate: new Date().toISOString(),
       students,
       sessionRecords,
       dailyRevisionRecords,
+      rawSubmissions,
+      selectedDate,
     };
     return JSON.stringify(backup, null, 2);
   };
@@ -1639,15 +1752,126 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const parsed = JSON.parse(json);
       if (parsed.students && Array.isArray(parsed.students)) {
+        if (students.length > 0) {
+          takeSafetySnapshot({
+            version: '2.0',
+            exportDate: new Date().toISOString(),
+            students,
+            sessionRecords,
+            dailyRevisionRecords,
+            rawSubmissions,
+            selectedDate,
+          }, 'قبل استيراد ملف JSON');
+        }
         setStudents(ensureAllStudentsHaveUniqueCodes(parsed.students));
-        if (parsed.sessionRecords) setSessionRecords(parsed.sessionRecords);
-        if (parsed.dailyRevisionRecords) setDailyRevisionRecords(parsed.dailyRevisionRecords);
+        if (parsed.sessionRecords && Array.isArray(parsed.sessionRecords)) setSessionRecords(parsed.sessionRecords);
+        if (parsed.dailyRevisionRecords && Array.isArray(parsed.dailyRevisionRecords)) setDailyRevisionRecords(parsed.dailyRevisionRecords);
         return true;
       }
       return false;
     } catch {
       return false;
     }
+  };
+
+  const createLocalBackupHandler = (name?: string, notes?: string): LocalBackupSnapshot => {
+    return saveLocalBackup(
+      name || '',
+      {
+        version: '2.0',
+        exportDate: new Date().toISOString(),
+        students,
+        sessionRecords,
+        dailyRevisionRecords,
+        rawSubmissions,
+        selectedDate,
+      },
+      false,
+      notes || ''
+    );
+  };
+
+  const restoreFromLocalBackupHandler = (backupId: string, mode: 'replace' | 'merge' = 'replace'): boolean => {
+    const allBackups = getLocalBackups();
+    const target = allBackups.find(b => b.id === backupId);
+    if (!target || !target.data || !target.data.students) return false;
+
+    // Take automatic safety snapshot of current data before restoring
+    if (students.length > 0) {
+      takeSafetySnapshot(
+        {
+          version: '2.0',
+          exportDate: new Date().toISOString(),
+          students,
+          sessionRecords,
+          dailyRevisionRecords,
+          rawSubmissions,
+          selectedDate,
+        },
+        `قبل استعادة النسخة: ${target.name}`
+      );
+    }
+
+    importFromTransferData(target.data, mode);
+    setTimeout(() => {
+      persistToCloud();
+    }, 400);
+
+    return true;
+  };
+
+  const deleteLocalBackupHandler = (backupId: string): boolean => {
+    return deleteLocalBackup(backupId);
+  };
+
+  const getLocalBackupsHandler = (): LocalBackupSnapshot[] => {
+    return getLocalBackups();
+  };
+
+  const importBackupDataHandler = async (
+    data: LocalBackupSnapshot['data'],
+    mode: 'replace' | 'merge' = 'replace'
+  ): Promise<boolean> => {
+    if (!data.students || !Array.isArray(data.students)) return false;
+
+    // Safety snapshot first
+    if (students.length > 0) {
+      takeSafetySnapshot(
+        {
+          version: '2.0',
+          exportDate: new Date().toISOString(),
+          students,
+          sessionRecords,
+          dailyRevisionRecords,
+          rawSubmissions,
+          selectedDate,
+        },
+        'قبل استيراد بيانات جديدة'
+      );
+    }
+
+    importFromTransferData(data, mode);
+
+    // Save as local backup too for convenience
+    saveLocalBackup(`نسخة مستوردة (${data.students.length} طالب)`, data, false, 'تم استيرادها محلياً');
+
+    setTimeout(() => {
+      persistToCloud();
+    }, 400);
+
+    return true;
+  };
+
+  const downloadBackupFileHandler = (customFilename?: string) => {
+    exportBackupToFile({
+      version: '2.0',
+      exportDate: new Date().toISOString(),
+      students,
+      sessionRecords,
+      dailyRevisionRecords,
+      rawSubmissions,
+      selectedDate,
+    }, customFilename);
   };
 
   const importFromTransferData = (
@@ -1747,6 +1971,12 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         exportDataJson,
         importDataJson,
         importFromTransferData,
+        createLocalBackup: createLocalBackupHandler,
+        restoreFromLocalBackup: restoreFromLocalBackupHandler,
+        deleteLocalBackup: deleteLocalBackupHandler,
+        getLocalBackups: getLocalBackupsHandler,
+        importBackupData: importBackupDataHandler,
+        downloadBackupFile: downloadBackupFileHandler,
       }}
     >
       {children}

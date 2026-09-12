@@ -7,13 +7,13 @@ import {
   Download, Upload, RotateCcw, Cloud, CloudOff, 
   RefreshCw, LogOut, User, Check, AlertTriangle, ShieldCheck,
   TrendingUp, ArrowLeftRight, Database, FileSpreadsheet, ShieldAlert, KeyRound, Sparkles,
-  Palette, Sliders
+  Palette, Sliders, HardDrive, Save
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddModal: () => void;
   onOpenAuthModal?: () => void;
-  onOpenTransferModal?: () => void;
+  onOpenTransferModal?: (tab?: 'backup' | 'offline' | 'send' | 'receive') => void;
   onOpenSubmissionsModal?: () => void;
   onOpenSupervisorModal?: () => void;
   onOpenAiModal?: () => void;
@@ -41,7 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
     isLoadingCloud,
     hasUnsavedChanges,
     saveToCloudNow,
-    pendingSubmissionsCount
+    pendingSubmissionsCount,
+    createLocalBackup,
+    downloadBackupFile
   } = useQuran();
 
   const { user, logout } = useAuth();
@@ -224,17 +226,17 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">طالب جديد</span>
           </button>
 
-          {/* Cross-Account Transfer Button */}
+          {/* Local Backup & Data Transfer Button */}
           {onOpenTransferModal && (
             <button
               type="button"
               id="transfer-data-modal-btn"
-              onClick={onOpenTransferModal}
+              onClick={() => onOpenTransferModal('backup')}
               className={`flex items-center gap-1.5 border text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors cursor-pointer shrink-0 ${headerPreset.btnClass}`}
-              title="نقل أو استيراد بيانات الطلاب بين الحسابات"
+              title="النسخ الاحتياطي والاستعادة المحلية ونقل البيانات"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="hidden md:inline">نقل الحساب</span>
+              <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="hidden md:inline">النسخ الاحتياطي</span>
             </button>
           )}
 
@@ -382,6 +384,78 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="py-1">
+                  {onOpenTransferModal && (
+                    <button
+                      type="button"
+                      id="dropdown-open-backup-btn"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        onOpenTransferModal('backup');
+                      }}
+                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer"
+                    >
+                      <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
+                      النسخ الاحتياطي والاستعادة المحلية
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    id="dropdown-save-local-snapshot-btn"
+                    onClick={() => {
+                      const snap = createLocalBackup('نسخة سريعة من القائمة');
+                      alert(`تم أخذ نسخة احتياطية محلية فورية بنجاح (${snap.studentsCount} طالب)!`);
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5 text-emerald-600" />
+                    حفظ نسخة محلية سريعة الآن
+                  </button>
+
+                  <button
+                    type="button"
+                    id="dropdown-export-json-btn"
+                    onClick={() => {
+                      downloadBackupFile();
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-teal-600" />
+                    تصدير نسخة احتياطية (JSON)
+                  </button>
+
+                  {onOpenTransferModal && (
+                    <button
+                      type="button"
+                      id="dropdown-import-json-btn"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        onOpenTransferModal('offline');
+                      }}
+                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-teal-600" />
+                      استيراد واستعادة من ملف JSON
+                    </button>
+                  )}
+
+                  {onOpenTransferModal && (
+                    <button
+                      type="button"
+                      id="dropdown-transfer-account-btn"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        onOpenTransferModal('send');
+                      }}
+                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-stone-500" />
+                      نقل أو استيراد من حساب آخر
+                    </button>
+                  )}
+
                   {onOpenSettingsModal && (
                     <button
                       type="button"
@@ -396,38 +470,6 @@ export const Header: React.FC<HeaderProps> = ({
                       تخصيص ألوان وتصميم التطبيق
                     </button>
                   )}
-
-                  {onOpenTransferModal && (
-                    <button
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        onOpenTransferModal();
-                      }}
-                      className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
-                    >
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500" />
-                      نقل أو استيراد من حساب آخر
-                    </button>
-                  )}
-
-                  <button
-                    onClick={handleExport}
-                    className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-500" />
-                    تصدير نسخة احتياطية (JSON)
-                  </button>
-
-                  <label className="w-full text-right px-3 py-1.5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center gap-2 cursor-pointer">
-                    <Upload className="w-3.5 h-3.5 text-teal-500" />
-                    استيراد نسخة سابقة
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImport}
-                      className="hidden"
-                    />
-                  </label>
                 </div>
 
                 <div className="py-1">

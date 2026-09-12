@@ -6,13 +6,17 @@ import { safeAddDoc, safeGetDocs } from '../utils/firestoreHelper';
 import { collection, addDoc, query, where, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { 
   Send, Download, Upload, Copy, Check, Mail, Key, Users, 
-  RefreshCw, AlertCircle, CheckCircle2, X, ArrowRight, ShieldCheck, Database
+  RefreshCw, AlertCircle, CheckCircle2, X, ArrowRight, ShieldCheck, Database,
+  HardDrive, Save, RotateCcw, Trash2, Calendar, Clock, FileText, CheckCheck,
+  AlertTriangle, Shield, CheckSquare
 } from 'lucide-react';
-import { Student, SessionRecord, DailyRevisionRecord } from '../types/quran';
+import { Student, SessionRecord, DailyRevisionRecord, LocalBackupSnapshot } from '../types/quran';
+import { parseBackupJson } from '../utils/backupManager';
 
 interface AccountTransferModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'backup' | 'offline' | 'send' | 'receive';
 }
 
 interface TransferPackage {
@@ -32,17 +36,42 @@ interface TransferPackage {
   };
 }
 
-export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOpen, onClose }) => {
+export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ 
+  isOpen, 
+  onClose,
+  initialTab = 'backup'
+}) => {
   const { user } = useAuth();
   const { 
     students, 
     sessionRecords, 
     dailyRevisionRecords, 
     importFromTransferData, 
-    saveToCloudNow 
+    saveToCloudNow,
+    createLocalBackup,
+    restoreFromLocalBackup,
+    deleteLocalBackup,
+    getLocalBackups,
+    importBackupData,
+    downloadBackupFile
   } = useQuran();
 
-  const [activeSubTab, setActiveSubTab] = useState<'send' | 'receive' | 'offline'>('send');
+  const [activeSubTab, setActiveSubTab] = useState<'backup' | 'offline' | 'send' | 'receive'>(initialTab);
+
+  // Sync initial tab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveSubTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  // Local Backups State
+  const [backupsList, setBackupsList] = useState<LocalBackupSnapshot[]>([]);
+  const [newBackupName, setNewBackupName] = useState('');
+  const [newBackupNotes, setNewBackupNotes] = useState('');
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [backupActionMsg, setBackupActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedBackupForAction, setSelectedBackupForAction] = useState<LocalBackupSnapshot | null>(null);
 
   // Send State
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -63,6 +92,15 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
   // Offline backup JSON
   const [jsonInput, setJsonInput] = useState('');
   const [copiedJson, setCopiedJson] = useState(false);
+  const [jsonMode, setJsonMode] = useState<'replace' | 'merge'>('replace');
+
+  // Load local backups whenever modal opens or tab changes
+  useEffect(() => {
+    if (isOpen) {
+      const list = getLocalBackups();
+      setBackupsList(list);
+    }
+  }, [isOpen, activeSubTab]);
 
   // Load incoming transfers for current user's email
   useEffect(() => {
@@ -96,30 +134,139 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
 
   if (!isOpen) return null;
 
-  // Handle Send
+  // Handle Create Local Backup
+  const handleCreateBackup = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingBackup(true);
+    setBackupActionMsg(null);
+
+    try {
+      const snapshot = createLocalBackup(newBackupName.trim(), newBackupNotes.trim());
+      setBackupsList(getLocalBackups());
+      setNewBackupName('');
+      setNewBackupNotes('');
+      setBackupActionMsg({
+        type: 'success',
+        text: `تم إنشاء النسخة الاحتياطية "${snapshot.name}" بنجاح (${snapshot.studentsCount} طالب).`,
+      });
+    } catch (err: any) {
+      setBackupActionMsg({
+        type: 'error',
+        text: 'تعذر إنشاء النسخة: ' + (err.message || 'خطأ غير معروف'),
+      });
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  };
+
+  // Handle Restore Local Backup
+  const handleRestoreBackup = (backupId: string, mode: 'replace' | 'merge') => {
+    const target = backupsList.find(b => b.id === backupId);
+    if (!target) return;
+
+    const confirmText = mode === 'replace'
+      ? `هل أنت متأكد من استعادة النسخة "${target.name}" واستبدال البيانات الحالية بالكامل؟\n(سيتم أخذ نسخة أمان تلقائية لبياناتك الحالية قبل الاستبدال).`
+      : `هل أنت متأكد من دمج بيانات النسخة "${target.name}" مع الطلاب الحاليين؟`;
+
+    if (!window.confirm(confirmText)) return;
+
+    const success = restoreFromLocalBackup(backupId, mode);
+    if (success) {
+      setBackupsList(getLocalBackups());
+      setBackupActionMsg({
+        type: 'success',
+        text: mode === 'replace'
+          ? `تم استعادة النسخة "${target.name}" بنجاح (${target.studentsCount} طالب)!`
+          : `تم دمج طلاب وسجلات النسخة "${target.name}" مع بياناتك الحالية بنجاح!`,
+      });
+      setSelectedBackupForAction(null);
+    } else {
+      setBackupActionMsg({
+        type: 'error',
+        text: 'فشلت عملية استعادة النسخة، يرجى المحاولة مرة أخرى.',
+      });
+    }
+  };
+
+  // Handle Delete Local Backup
+  const handleDeleteBackup = (backupId: string) => {
+    const target = backupsList.find(b => b.id === backupId);
+    if (!target) return;
+
+    if (!window.confirm(`هل أنت متأكد من حذف النسخة الاحتياطية "${target.name}"؟`)) return;
+
+    deleteLocalBackup(backupId);
+    setBackupsList(getLocalBackups());
+    if (selectedBackupForAction?.id === backupId) {
+      setSelectedBackupForAction(null);
+    }
+    setBackupActionMsg({
+      type: 'success',
+      text: 'تم حذف النسخة بنجاح.',
+    });
+  };
+
+  // Handle JSON File Upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      const res = parseBackupJson(content);
+      if (!res.success || !res.data) {
+        setBackupActionMsg({
+          type: 'error',
+          text: res.error || 'الملف المرفوع لا يحتوي على صيغة نسخ احتياطي صحيحة.',
+        });
+        return;
+      }
+
+      const data = res.data;
+      if (window.confirm(`تم قراءة الملف بنجاح! يحتوي على ${data.students.length} طالب.\nهل تريد تطبيق الاستيراد بنمط (${jsonMode === 'replace' ? 'استبدال كامل' : 'دمج مع الحاليين'})؟`)) {
+        await importBackupData(data, jsonMode);
+        setBackupsList(getLocalBackups());
+        setBackupActionMsg({
+          type: 'success',
+          text: `تم استيراد ${data.students.length} طالب بنجاح! تم حفظها محلياً وسحابياً.`,
+        });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // Handle Send to Account
   const handleSendToAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert('يرجى تسجيل الدخول بحسابك أولاً لإتمام النقل السحابي');
+      alert('يجب تسجيل الدخول أولاً للتمكن من نقل الحساب سحابياً');
       return;
     }
+
     const cleanEmail = recipientEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      alert('يرجى إدخال بريد إلكتروني صحيح للحساب المستلم');
+      alert('يرجى إدخال بريد إلكتروني صحيح للمشرف المستلم');
+      return;
+    }
+
+    if (cleanEmail === user.email?.toLowerCase()) {
+      alert('لا يمكنك إرسال البيانات لنفس بريدك الحالي');
       return;
     }
 
     setIsSending(true);
     setSendSuccessMessage(null);
+    setGeneratedCode(null);
+
     try {
-      // 6-character random verification code
-      const code = 'QS-' + Math.floor(100000 + Math.random() * 900000);
+      const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const payload: Omit<TransferPackage, 'id'> = {
-        senderUid: user.uid,
-        senderEmail: user.email || '',
-        senderName: user.displayName || user.email?.split('@')[0] || 'معلم الحلقة',
+        senderEmail: user.email || 'unknown',
+        senderName: user.displayName || user.email?.split('@')[0] || 'المشرف',
         targetEmail: cleanEmail,
-        code,
+        code: randomCode,
         studentsCount: students.length,
         sessionsCount: sessionRecords.length,
         revisionsCount: dailyRevisionRecords.length,
@@ -128,82 +275,84 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
           students,
           sessionRecords,
           dailyRevisionRecords,
-        },
-      } as any;
+        }
+      };
 
       await safeAddDoc(collection(db, 'transfers'), payload);
 
-      setGeneratedCode(code);
-      setSendSuccessMessage(`تم بنجاح إرسال نسخة بيانات الحلقة (${students.length} طالب و ${sessionRecords.length} جلسة) إلى الحساب (${cleanEmail})!`);
+      setGeneratedCode(randomCode);
+      setSendSuccessMessage(`تم إرسال حزمة بيانات الحلقة (${students.length} طالب) إلى البريد (${cleanEmail}) بنجاح.`);
       setRecipientEmail('');
     } catch (err: any) {
-      console.error('Send transfer error:', err);
-      alert('حدث خطأ أثناء إرسال البيانات: ' + (err.message || 'يرجى التأكد من الاتصال بالإنترنت'));
+      console.error('Transfer send error:', err);
+      alert('حدث خطأ أثناء إرسال البيانات: ' + (err.message || 'خطأ غير معروف'));
     } finally {
       setIsSending(false);
     }
   };
 
-  // Handle Manual Search by Code or Sender Email
-  const handleSearchManual = async (e: React.FormEvent) => {
+  // Handle Manual Code Search
+  const handleSearchManualCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    const queryStr = manualCodeOrEmail.trim().toLowerCase();
-    if (!queryStr) return;
+    const queryTerm = manualCodeOrEmail.trim().toUpperCase();
+    if (!queryTerm) return;
 
     setIsSearchingManual(true);
     setFoundPackage(null);
     setReceiveMessage(null);
+
     try {
-      let q;
-      if (queryStr.startsWith('qs-') || queryStr.length === 9) {
-        // search by code
-        q = query(collection(db, 'transfers'), where('code', '==', queryStr.toUpperCase()));
-      } else {
-        // search by sender email
-        q = query(collection(db, 'transfers'), where('senderEmail', '==', queryStr));
+      let q = query(collection(db, 'transfers'), where('code', '==', queryTerm));
+      let snap = await safeGetDocs(q);
+
+      if (!snap || snap.empty) {
+        q = query(collection(db, 'transfers'), where('senderEmail', '==', manualCodeOrEmail.trim().toLowerCase()));
+        snap = await safeGetDocs(q);
       }
 
-      const snap = await safeGetDocs(q);
-      if (!snap || snap.empty) {
-        setReceiveMessage({
-          type: 'error',
-          text: 'لم يتم العثور على أي حلقة مرسلة بهذا الكود أو الإيميل. تأكد من صحة المدخلات.',
-        });
-      } else {
+      if (snap && !snap.empty) {
         const docSnap = snap.docs[0];
         setFoundPackage({ id: docSnap.id, ...(docSnap.data() as any) });
+      } else {
+        setReceiveMessage({
+          type: 'error',
+          text: 'لم يتم العثور على أي حلقة مشاركة بهذا الرمز أو البريد. تأكد من صحة الرمز.',
+        });
       }
     } catch (err: any) {
-      console.error('Search transfer error:', err);
+      console.error('Search error:', err);
       setReceiveMessage({
         type: 'error',
-        text: 'تعذر جلب البيانات: ' + (err.message || 'خطأ في الاتصال'),
+        text: 'حدث خطأ أثناء البحث عن الحلقة: ' + err.message,
       });
     } finally {
       setIsSearchingManual(false);
     }
   };
 
-  // Execute Import
+  // Handle Execute Import from Cloud Package
   const handleExecuteImport = async (pkg: TransferPackage, mode: 'replace' | 'merge') => {
-    const confirmMsg = mode === 'replace'
-      ? `تحذير: هل أنت متأكد من استبدال كافة بيانات طلابك الحالية ببيانات هذه الحلقة (${pkg.studentsCount} طالب)؟`
-      : `هل تريد دمج طلاب وسجلات هذه الحلقة (${pkg.studentsCount} طالب) مع طلابك الحاليين؟`;
-
-    if (!window.confirm(confirmMsg)) return;
+    if (!window.confirm(
+      mode === 'replace'
+        ? `هل أنت متأكد من استبدال كافة طلابك الحاليين (${students.length} طالب) ببيانات هذه الحلقة (${pkg.studentsCount} طالب)؟`
+        : `هل أنت متأكد من دمج ${pkg.studentsCount} طالب مع طلابك الحاليين؟`
+    )) {
+      return;
+    }
 
     setIsImporting(true);
-    setReceiveMessage(null);
     try {
-      importFromTransferData(pkg.data, mode);
-      await saveToCloudNow();
+      await importBackupData(pkg.data, mode);
+      try {
+        await deleteDoc(doc(db, 'transfers', pkg.id));
+      } catch (delErr) {
+        console.warn('Could not auto-delete transfer document:', delErr);
+      }
 
       setReceiveMessage({
         type: 'success',
-        text: `تم استيراد ${pkg.studentsCount} طالب و ${pkg.sessionsCount} جلسة تسميع بنجاح في حسابك! تم حفظها سحابياً.`,
+        text: `تم استيراد ${pkg.studentsCount} طالب بنجاح وحفظها محلياً وسحابياً!`,
       });
-
-      // Remove from incoming transfers local state
       setIncomingTransfers(prev => prev.filter(t => t.id !== pkg.id));
       setFoundPackage(null);
     } catch (err: any) {
@@ -219,7 +368,7 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-stone-200/80 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl border border-stone-200/80 w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
         <div className="bg-stone-900 text-white p-5 sm:p-6 border-b border-stone-800 flex items-center justify-between">
@@ -228,11 +377,14 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
               <Database className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold font-['Amiri',serif]">
-                استيراد ونقل البيانات بين الحسابات
+              <h2 className="text-lg sm:text-xl font-bold font-['Amiri',serif] flex items-center gap-2">
+                <span>النسخ الاحتياطي والاستعادة ونقل البيانات</span>
+                <span className="text-[11px] bg-emerald-500/20 text-emerald-300 font-sans px-2 py-0.5 rounded-full border border-emerald-500/40">
+                  حماية متقدمة
+                </span>
               </h2>
-              <p className="text-xs text-emerald-400 mt-0.5">
-                نقل كافة بيانات الطلاب (50 طالباً أو أكثر) والجلسات والورد بين الحسابات بضغطة زر
+              <p className="text-xs text-stone-300 mt-0.5">
+                نسخ احتياطي محلي، استعادة فورية، حماية من فقد البيانات، وتصدير كامل
               </p>
             </div>
           </div>
@@ -245,82 +397,464 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
           </button>
         </div>
 
-        {/* Sub Navigation Tabs */}
-        <div className="bg-stone-100/90 border-b border-stone-200 px-4 pt-2 flex items-center gap-2 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => { setActiveSubTab('send'); setReceiveMessage(null); }}
-            className={`pb-2.5 px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all ${
-              activeSubTab === 'send'
-                ? 'border-emerald-600 text-emerald-800 font-extrabold'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>إرسال ونقل لحساب آخر</span>
-          </button>
+        {/* Global Data Summary Strip */}
+        <div className="bg-stone-100 border-b border-stone-200 px-5 py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-4 text-stone-700">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Users className="w-4 h-4 text-emerald-600" />
+              الطلاب الحاليين: <span className="text-emerald-700 font-mono text-sm">{students.length}</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-stone-600 hidden sm:flex">
+              <Clock className="w-3.5 h-3.5 text-stone-400" />
+              جلسات التسميع: <span className="font-mono">{sessionRecords.length}</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-stone-600 hidden md:flex">
+              <CheckSquare className="w-3.5 h-3.5 text-stone-400" />
+              سجلات الورد: <span className="font-mono">{dailyRevisionRecords.length}</span>
+            </span>
+          </div>
 
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              بياناتك محمية من الحذف
+            </span>
+          </div>
+        </div>
+
+        {/* Sub Navigation Tabs */}
+        <div className="bg-stone-50 border-b border-stone-200 px-4 pt-2 flex items-center gap-1 sm:gap-2 text-xs font-bold overflow-x-auto">
           <button
             type="button"
-            onClick={() => { setActiveSubTab('receive'); setReceiveMessage(null); }}
-            className={`pb-2.5 px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all ${
-              activeSubTab === 'receive'
-                ? 'border-emerald-600 text-emerald-800 font-extrabold'
+            onClick={() => { setActiveSubTab('backup'); setBackupActionMsg(null); }}
+            className={`pb-2.5 px-3 sm:px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all whitespace-nowrap ${
+              activeSubTab === 'backup'
+                ? 'border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>استيراد من حساب آخر</span>
-            {incomingTransfers.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center">
-                {incomingTransfers.length}
+            <HardDrive className="w-4 h-4" />
+            <span>النسخ والاستعادة المحلية</span>
+            {backupsList.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-stone-200 text-stone-700 text-[10px] flex items-center justify-center">
+                {backupsList.length}
               </span>
             )}
           </button>
 
           <button
             type="button"
-            onClick={() => { setActiveSubTab('offline'); setReceiveMessage(null); }}
-            className={`pb-2.5 px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all ${
+            onClick={() => { setActiveSubTab('offline'); setBackupActionMsg(null); }}
+            className={`pb-2.5 px-3 sm:px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all whitespace-nowrap ${
               activeSubTab === 'offline'
-                ? 'border-emerald-600 text-emerald-800 font-extrabold'
+                ? 'border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>نسخ احتياطي واستعادة</span>
+            <Download className="w-4 h-4" />
+            <span>ملف JSON خارجي</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setActiveSubTab('send'); setReceiveMessage(null); }}
+            className={`pb-2.5 px-3 sm:px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all whitespace-nowrap ${
+              activeSubTab === 'send'
+                ? 'border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+            <span>نقل لحساب آخر</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setActiveSubTab('receive'); setReceiveMessage(null); }}
+            className={`pb-2.5 px-3 sm:px-4 flex items-center gap-2 border-b-2 cursor-pointer transition-all whitespace-nowrap ${
+              activeSubTab === 'receive'
+                ? 'border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Key className="w-4 h-4" />
+            <span>استلام من مشرف</span>
+            {incomingTransfers.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center">
+                {incomingTransfers.length}
+              </span>
+            )}
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-5 max-h-[72vh] overflow-y-auto">
           
-          {/* TAB 1: SEND / SHARE TO ANOTHER ACCOUNT */}
+          {/* Action Notification Banner */}
+          {backupActionMsg && (
+            <div className={`p-3.5 rounded-2xl flex items-center gap-3 text-xs font-bold animate-in fade-in ${
+              backupActionMsg.type === 'success' 
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`}>
+              {backupActionMsg.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              )}
+              <span className="flex-1">{backupActionMsg.text}</span>
+              <button 
+                type="button" 
+                onClick={() => setBackupActionMsg(null)}
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* TAB 1: LOCAL BACKUPS & INSTANT RESTORATION */}
+          {activeSubTab === 'backup' && (
+            <div className="space-y-6">
+              
+              {/* Anti-Data-Loss Safety Guarantee Notice */}
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900">
+                <Shield className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-emerald-950">
+                    ضمان سلامة البيانات عند تعديل التطبيق وإعادة النشر:
+                  </p>
+                  <p className="text-emerald-800 leading-relaxed">
+                    بيانات الطلاب وسجلاتهم محفوظة بشكل دائم في التخزين المحلي وفي السحابة المشتركة. لن يتم حذف أي طالب عند إعادة نشر التطبيق أو تحديثه، كما يقوم النظام بأخذ نسخة أمان احتياطية تلقائياً قبل أي عملية استعادة أو مسح.
+                  </p>
+                </div>
+              </div>
+
+              {/* Form: Create Local Backup Now */}
+              <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Save className="w-4 h-4 text-emerald-600" />
+                    <span>إنشاء نسخة احتياطية محلية الآن</span>
+                  </h3>
+                  <span className="text-[11px] text-stone-500 font-medium">
+                    تحفظ كل الطلاب ({students.length}) فوراً
+                  </span>
+                </div>
+
+                <form onSubmit={handleCreateBackup} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        اسم النسخة (اختياري):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="مثال: نسخة قبل بدء الاختبارات"
+                        value={newBackupName}
+                        onChange={(e) => setNewBackupName(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        ملاحظة للنسخة (اختياري):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="مثال: تم إنجاز الجزء الثاني لـ 20 طالباً"
+                        value={newBackupNotes}
+                        onChange={(e) => setNewBackupNotes(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isCreatingBackup}
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-1.5"
+                    >
+                      {isCreatingBackup ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      <span>حفظ نسخة احتياطية جديدة</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* History of Saved Local Backups */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-stone-600" />
+                    <span>النسخ الاحتياطية المحفوظة محلياً ({backupsList.length})</span>
+                  </h3>
+                  <span className="text-[11px] text-stone-500">
+                    يمكن استعادة أي نسخة بضغطة زر
+                  </span>
+                </div>
+
+                {backupsList.length === 0 ? (
+                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-6 text-center space-y-2">
+                    <HardDrive className="w-8 h-8 text-stone-400 mx-auto" />
+                    <p className="text-xs font-bold text-stone-600">لا توجد نسخ احتياطية محلية محفوظة بعد.</p>
+                    <p className="text-[11px] text-stone-500 max-w-md mx-auto">
+                      انقر على زر "حفظ نسخة احتياطية جديدة" أعلاه للاحتفاظ بنسخة دائمة من بيانات طلابك وحلقتك.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {backupsList.map((backup) => (
+                      <div 
+                        key={backup.id}
+                        className={`border rounded-2xl p-4 transition-all duration-200 ${
+                          backup.isAutoSnapshot 
+                            ? 'bg-amber-50/40 border-amber-200' 
+                            : 'bg-white border-stone-200 hover:border-emerald-300 shadow-xs'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-stone-900 font-mono">
+                                {backup.name}
+                              </span>
+                              {backup.isAutoSnapshot && (
+                                <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                                  أمان تلقائي
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[11px] text-stone-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-stone-400" />
+                                {new Date(backup.timestamp).toLocaleString('ar-SA')}
+                              </span>
+                              <span className="flex items-center gap-1 font-bold text-emerald-800">
+                                <Users className="w-3 h-3 text-emerald-600" />
+                                {backup.studentsCount} طالب
+                              </span>
+                              <span className="text-stone-400">
+                                {backup.sessionsCount} جلسة • {backup.revisionsCount} ورد
+                              </span>
+                            </div>
+                            {backup.notes && (
+                              <p className="text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1 rounded-lg inline-block mt-1">
+                                {backup.notes}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleRestoreBackup(backup.id, 'replace')}
+                              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                              title="استعادة واستبدال البيانات الحالية بالكامل ببيانات هذه النسخة"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              <span>استعادة كاملة</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRestoreBackup(backup.id, 'merge')}
+                              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-[11px] font-bold rounded-xl border border-stone-300 cursor-pointer transition-colors flex items-center gap-1"
+                              title="دمج طلاب هذه النسخة مع طلابك الحاليين دون مسح الموجودين"
+                            >
+                              <Users className="w-3 h-3 text-stone-500" />
+                              <span>دمج مع الحاليين</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const jsonStr = JSON.stringify(backup.data, null, 2);
+                                const blob = new Blob([jsonStr], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${backup.name.replace(/\s+/g, '_')}.json`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }}
+                              className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl border border-stone-200 cursor-pointer transition-colors"
+                              title="تحميل كملف JSON للجهاز"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBackup(backup.id)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl border border-rose-200 cursor-pointer transition-colors"
+                              title="حذف هذه النسخة"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: OFFLINE JSON FILE IMPORT / EXPORT */}
+          {activeSubTab === 'offline' && (
+            <div className="space-y-6">
+              
+              {/* Export Full Current Data Button */}
+              <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    <span>تصدير نسخة احتياطية كاملة إلى ملف (JSON)</span>
+                  </h3>
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    يحفظ ملف .json على جهازك الشخصي يحوي كافة الطلاب ({students.length}) والجلسات والورد.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadBackupFile()}
+                  className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>تحميل ملف النسخة الاحتياطية (.json)</span>
+                </button>
+              </div>
+
+              {/* Import Options Mode: Replace or Merge */}
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-teal-600" />
+                    <span>استيراد واستعادة من ملف احتياطي (JSON)</span>
+                  </h3>
+                  
+                  {/* Mode Selector */}
+                  <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setJsonMode('replace')}
+                      className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors ${
+                        jsonMode === 'replace' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                      }`}
+                    >
+                      استبدال كامل
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setJsonMode('merge')}
+                      className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors ${
+                        jsonMode === 'merge' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                      }`}
+                    >
+                      دمج مع الحاليين
+                    </button>
+                  </div>
+                </div>
+
+                {/* Drag & Drop / File Browser */}
+                <div className="border-2 border-dashed border-stone-300 hover:border-emerald-500 rounded-2xl p-6 text-center space-y-2 bg-stone-50/50 transition-colors">
+                  <Upload className="w-8 h-8 text-stone-400 mx-auto" />
+                  <p className="text-xs font-bold text-stone-700">اختر ملف نسخة احتياطية من جهازك (.json)</p>
+                  <p className="text-[11px] text-stone-500">سيتم تطبيق نمط: {jsonMode === 'replace' ? 'استبدال كامل' : 'دمج ذكي مع الطلاب الحاليين'}</p>
+                  <label className="inline-block mt-2 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors">
+                    <span>استعراض الملفات</span>
+                    <input 
+                      type="file" 
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+
+                {/* Paste JSON Text Directly */}
+                <div className="space-y-2 pt-2">
+                  <label className="block text-[11px] font-bold text-stone-700">
+                    أو الصق نص البيانات الاحتياطية (JSON) مباشرة:
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="الصق نص ملف الـ JSON هنا..."
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    className="w-full p-3 font-mono text-[11px] bg-stone-50 border border-stone-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!jsonInput.trim()}
+                      onClick={async () => {
+                        const res = parseBackupJson(jsonInput);
+                        if (!res.success || !res.data) {
+                          setBackupActionMsg({
+                            type: 'error',
+                            text: res.error || 'نص البيانات المدخل غير صالح. تأكد من نسخ ملف JSON كاملاً.',
+                          });
+                          return;
+                        }
+                        const data = res.data;
+                        if (window.confirm(`تم قراءة البيانات بنجاح! تحتوي على ${data.students.length} طالب.\nهل تريد تطبيق الاستيراد بنمط (${jsonMode === 'replace' ? 'استبدال كامل' : 'دمج مع الحاليين'})؟`)) {
+                          await importBackupData(data, jsonMode);
+                          setBackupsList(getLocalBackups());
+                          setJsonInput('');
+                          setBackupActionMsg({
+                            type: 'success',
+                            text: `تم استيراد وتطبيق ${data.students.length} طالب بنجاح!`,
+                          });
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                    >
+                      استيراد وتطبيق النص الآن
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 3: SEND / SHARE TO ANOTHER ACCOUNT */}
           {activeSubTab === 'send' && (
             <div className="space-y-5">
-              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-900 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>نقل نسخة شاملة من حلقتك الحالية</span>
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-emerald-950">
+                    نقل الحلقة بأكملها إلى حساب بريد إلكتروني آخر:
+                  </p>
+                  <p className="text-emerald-800 leading-relaxed">
+                    عند إدخال البريد الإلكتروني للمشرف المستلم، سيتم إنشاء حزمة مشفرة تحتوي على جميع الطلاب ({students.length} طالب) وسجلاتهم ورموز تسجيل دخولهم. سيتمكن المشرف الآخر من استلامها فور تسجيل دخوله.
+                  </p>
                 </div>
-                <p className="leading-relaxed">
-                  سيتم إنشاء حزمة سحابية آمنة تتضمن كافة طلابك الحاليين (<strong>{students.length} طالب</strong>)، 
-                  مع كامل سجلات التسميع (<strong>{sessionRecords.length} جلسة</strong>)، وجميع أيام الورد اليومي، 
-                  وإتاحتها فوراً للحساب الذي تدخله.
-                </p>
               </div>
 
               {sendSuccessMessage && (
-                <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 text-xs text-emerald-800 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <div className="bg-emerald-100 border border-emerald-300 rounded-2xl p-4 space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>{sendSuccessMessage}</span>
                   </div>
                   {generatedCode && (
-                    <div className="bg-white border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div className="bg-white/80 border border-emerald-300 rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <span className="text-[11px] text-stone-500 block">كود النقل السريع للحلقة:</span>
-                        <span className="font-mono text-base font-bold text-emerald-700 tracking-wider">
+                        <span className="text-[11px] text-stone-500 block">رمز الاستلام السريع للمشرف:</span>
+                        <span className="font-mono text-base font-extrabold text-stone-900 tracking-wider">
                           {generatedCode}
                         </span>
                       </div>
@@ -331,174 +865,161 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
                           setCopiedCode(true);
                           setTimeout(() => setCopiedCode(false), 2000);
                         }}
-                        className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedCode ? 'تم النسخ' : 'نسخ الكود'}</span>
+                        <span>{copiedCode ? 'تم النسخ' : 'نسخ الرمز'}</span>
                       </button>
                     </div>
                   )}
-                  <p className="text-[11px] text-emerald-700">
-                    يمكن للمستلم الدخول بحسابه وفتح نافذة "استيراد من حساب آخر"؛ وسيجد الحلقة في انتظاره مباشرة، أو يمكنه استخدام كود النقل أعلاه.
-                  </p>
                 </div>
               )}
 
               <form onSubmit={handleSendToAccount} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    البريد الإلكتروني للحساب المراد نقل البيانات إليه:
+                  <label className="block text-xs font-bold text-stone-800 mb-1.5">
+                    البريد الإلكتروني للمشرف المستلم:
                   </label>
                   <div className="relative">
+                    <Mail className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                     <input
                       type="email"
                       required
-                      placeholder="مثال: teacher2@gmail.com"
+                      placeholder="supervisor@example.com"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
-                      className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-600 focus:bg-white outline-none"
+                      className="w-full pr-10 pl-4 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                     />
-                    <Mail className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
                   </div>
-                  <span className="text-[11px] text-stone-400 mt-1 block">
-                    يمكنك إدخال إيميل حساب المعلم الآخر الذي يدخل به في التطبيق.
+                  <span className="text-[11px] text-stone-500 mt-1 block">
+                    يجب أن يكون المشرف المستلم قد سجل دخوله بهذا البريد في التطبيق.
                   </span>
                 </div>
 
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs text-stone-600">
-                  <span>الطلاب الجاهزون للنقل:</span>
-                  <span className="font-bold text-stone-900 bg-white px-2.5 py-1 rounded-lg border border-stone-200">
-                    {students.length} طالب
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSending || students.length === 0}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                >
-                  {isSending ? (
-                    <>
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSending || !recipientEmail}
+                    className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-colors flex items-center gap-2"
+                  >
+                    {isSending ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>جارِ تجهيز وإرسال البيانات سحابياً...</span>
-                    </>
-                  ) : (
-                    <>
+                    ) : (
                       <Send className="w-4 h-4" />
-                      <span>إرسال ونقل حزمة الحلقة الآن</span>
-                    </>
-                  )}
-                </button>
+                    )}
+                    <span>إرسال حزمة الحلقة للحساب المحدد</span>
+                  </button>
+                </div>
               </form>
             </div>
           )}
 
-          {/* TAB 2: RECEIVE / IMPORT FROM ANOTHER ACCOUNT */}
+          {/* TAB 4: RECEIVE FROM ANOTHER ACCOUNT */}
           {activeSubTab === 'receive' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               
-              {/* Feedback Alert */}
               {receiveMessage && (
-                <div className={`p-4 rounded-2xl text-xs border flex items-start gap-2.5 ${
+                <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold animate-in fade-in ${
                   receiveMessage.type === 'success' 
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800' 
-                    : 'bg-rose-50 border-rose-300 text-rose-800'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                    : 'bg-rose-50 text-rose-800 border border-rose-200'
                 }`}>
                   {receiveMessage.type === 'success' ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                   )}
-                  <div className="space-y-1">
-                    <p className="font-bold text-xs">{receiveMessage.text}</p>
-                  </div>
+                  <span>{receiveMessage.text}</span>
                 </div>
               )}
 
-              {/* Incoming to my email */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+              {/* Automatic Incoming Transfers for Current Logged in Email */}
+              {user?.email && (
+                <div className="space-y-3">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-emerald-600" />
-                    <span>حلقات مرسلة ومخصصة لبريدك الإلكتروني ({user?.email || 'غير مسجل'}):</span>
+                    <span>الحلقات المرسلة إلى حسابك ({incomingTransfers.length})</span>
                   </h3>
-                  {isLoadingIncoming && (
-                    <span className="text-[11px] text-stone-400 flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" /> جارِ الفحص...
-                    </span>
-                  )}
-                </div>
 
-                {incomingTransfers.length === 0 ? (
-                  <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 text-center text-xs text-stone-500">
-                    لا توجد حلقات معلقة مرسلة إلى بريدك حالياً. يمكنك البحث بكود النقل أدناه.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {incomingTransfers.map((pkg) => (
-                      <div key={pkg.id} className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-xs font-bold text-stone-900 block">
-                              حلقة من: {pkg.senderName} ({pkg.senderEmail})
-                            </span>
-                            <span className="text-[11px] text-stone-500 mt-0.5 block">
-                              تاريخ الإرسال: {new Date(pkg.createdAt).toLocaleDateString('ar-SA')} | كود: {pkg.code}
+                  {isLoadingIncoming ? (
+                    <div className="p-6 text-center text-xs text-stone-500 flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>جارِ فحص الحلقات المرسلة إلى حسابك...</span>
+                    </div>
+                  ) : incomingTransfers.length === 0 ? (
+                    <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 text-center text-xs text-stone-500">
+                      لا توجد حلقات مرسلة لبريدك حالياً. يمكنك البحث برمز الحلقة أدناه إذا أرسل لك مشرف رمزاً.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {incomingTransfers.map((pkg) => (
+                        <div key={pkg.id} className="bg-stone-50 border border-stone-200 hover:border-emerald-300 rounded-2xl p-4 transition-all space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="text-xs font-bold text-stone-900">
+                                مرسلة من: {pkg.senderName} ({pkg.senderEmail})
+                              </h4>
+                              <p className="text-[11px] text-stone-500 mt-0.5">
+                                تحتوي على {pkg.studentsCount} طالباً • {pkg.sessionsCount} جلسة تسميع • {pkg.revisionsCount} تدوين ورد.
+                              </p>
+                              <span className="text-[10px] text-stone-400 mt-1 block">
+                                أُرسلت بتاريخ: {new Date(pkg.createdAt).toLocaleDateString('ar-SA')}
+                              </span>
+                            </div>
+                            <span className="font-mono text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
+                              رمز: {pkg.code}
                             </span>
                           </div>
-                          <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs">
-                            {pkg.studentsCount} طالب
-                          </span>
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              disabled={isImporting}
+                              onClick={() => handleExecuteImport(pkg, 'replace')}
+                              className="flex-1 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-colors"
+                            >
+                              استبدال كامل ببيانات هذه الحلقة
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isImporting}
+                              onClick={() => handleExecuteImport(pkg, 'merge')}
+                              className="flex-1 py-2 bg-white hover:bg-stone-100 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 cursor-pointer transition-colors"
+                            >
+                              دمج مع طلابي الحاليين
+                            </button>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-                        <div className="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-200/60 flex items-center justify-between">
-                          <span>سجلات التسميع المرفقة: <strong>{pkg.sessionsCount}</strong></span>
-                          <span>سجلات الورد: <strong>{pkg.revisionsCount}</strong></span>
-                        </div>
+              {/* Manual Code Search Option */}
+              <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <Key className="w-4 h-4 text-emerald-600" />
+                    <span>أو استيراد يدوي برمز المشاركة</span>
+                  </h3>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    إذا زوّدك مشرف برمز مشاركة مكون من 6 خانات، أدخله هنا:
+                  </p>
+                </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            disabled={isImporting}
-                            onClick={() => handleExecuteImport(pkg, 'replace')}
-                            className="flex-1 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-colors text-center"
-                          >
-                            استبدال كامل ببيانات هذه الحلقة
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isImporting}
-                            onClick={() => handleExecuteImport(pkg, 'merge')}
-                            className="flex-1 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl border border-stone-300 cursor-pointer transition-colors text-center"
-                          >
-                            دمج مع طلابي الحاليين
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Manual Search by code or sender email */}
-              <div className="border-t border-stone-200 pt-5 space-y-3">
-                <h3 className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
-                  <Key className="w-4 h-4 text-emerald-600" />
-                  <span>أو ابحث عن حلقة عبر كود النقل السريع أو بريد المعلم المرسل:</span>
-                </h3>
-
-                <form onSubmit={handleSearchManual} className="flex gap-2">
+                <form onSubmit={handleSearchManualCode} className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="مثال: QS-123456 أو ahmed@gmail.com"
+                    placeholder="مثال: AB12XY أو بريد المشرف"
                     value={manualCodeOrEmail}
                     onChange={(e) => setManualCodeOrEmail(e.target.value)}
-                    className="flex-1 px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-600 outline-none"
+                    className="flex-1 px-3.5 py-2 bg-white border border-stone-300 rounded-xl text-xs outline-none focus:border-emerald-600 uppercase font-mono"
                   />
                   <button
                     type="submit"
                     disabled={isSearchingManual || !manualCodeOrEmail.trim()}
-                    className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
                   >
                     {isSearchingManual ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'بحث'}
                   </button>
@@ -541,56 +1062,17 @@ export const AccountTransferModal: React.FC<AccountTransferModalProps> = ({ isOp
                   </div>
                 )}
               </div>
+
             </div>
           )}
 
-          {/* TAB 3: OFFLINE BACKUP / RESTORE */}
-          {activeSubTab === 'offline' && (
-            <div className="space-y-4 text-xs">
-              <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2">
-                <span className="font-bold text-stone-800 text-sm block">النسخ الاحتياطي اليدوي الكامل (JSON)</span>
-                <p className="text-stone-500 leading-relaxed">
-                  يمكنك أيضاً نسخ نص بيانات الحلقة كاملاً أو حفظه في ملف واستعادته في أي وقت بدون إنترنت.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block font-bold text-stone-700">استعادة من نص JSON أو ملف احتياطي:</label>
-                <textarea
-                  rows={4}
-                  placeholder="الصق نص البيانات الاحتياطية هنا..."
-                  value={jsonInput}
-                  onChange={(e) => setJsonInput(e.target.value)}
-                  className="w-full p-3 font-mono text-[11px] bg-stone-50 border border-stone-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600"
-                />
-                <button
-                  type="button"
-                  disabled={!jsonInput.trim()}
-                  onClick={async () => {
-                    try {
-                      const parsed = JSON.parse(jsonInput);
-                      if (!parsed.students || !Array.isArray(parsed.students)) {
-                        throw new Error('صيغة البيانات غير صحيحة');
-                      }
-                      importFromTransferData(parsed, 'replace');
-                      await saveToCloudNow();
-                      alert(`تم استيراد ${parsed.students.length} طالب بنجاح!`);
-                      setJsonInput('');
-                    } catch (err: any) {
-                      alert('خطأ في استيراد البيانات: ' + err.message);
-                    }
-                  }}
-                  className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold rounded-xl cursor-pointer transition-colors"
-                >
-                  استعادة وتطبيق البيانات الآن
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Footer */}
-        <div className="bg-stone-50 border-t border-stone-200 px-6 py-3.5 flex justify-end">
+        {/* Modal Footer */}
+        <div className="bg-stone-50 border-t border-stone-200 px-6 py-3.5 flex items-center justify-between">
+          <span className="text-[11px] text-stone-500">
+            حلقة جامع السرور • نظام إدارة وحفظ البيانات
+          </span>
           <button
             type="button"
             onClick={onClose}
