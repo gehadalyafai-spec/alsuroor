@@ -20,7 +20,6 @@ import { AccountTransferModal } from './components/AccountTransferModal';
 import { StudentPortalView } from './components/StudentPortalView';
 import { StudentSubmissionsModal } from './components/StudentSubmissionsModal';
 import { SupervisorManagementModal } from './components/SupervisorManagementModal';
-import { AiAssistantModal } from './components/AiAssistantModal';
 import { AppSettingsModal } from './components/AppSettingsModal';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp } from 'lucide-react';
@@ -42,7 +41,6 @@ function AppContent() {
   const [transferInitialTab, setTransferInitialTab] = useState<'backup' | 'send' | 'receive'>('backup');
   const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
   const [isSupervisorModalOpen, setIsSupervisorModalOpen] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
   const [preferStudentLogin, setPreferStudentLogin] = useState(false);
@@ -112,7 +110,6 @@ function AppContent() {
         }}
         onOpenSubmissionsModal={() => setIsSubmissionsModalOpen(true)}
         onOpenSupervisorModal={() => setIsSupervisorModalOpen(true)}
-        onOpenAiModal={() => setIsAiModalOpen(true)}
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
       />
 
@@ -281,13 +278,6 @@ function AppContent() {
           onClose={() => setSelectedStudentId(null)}
         />
       )}
-
-      {/* Gemini 3.8 Flash Quran Assistant Modal */}
-      <AiAssistantModal
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        defaultStudentId={selectedStudentId}
-      />
 
       {/* App Appearance & Theme Settings Modal */}
       <AppSettingsModal

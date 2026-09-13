@@ -16,7 +16,6 @@ interface HeaderProps {
   onOpenTransferModal?: (tab?: 'backup' | 'send' | 'receive') => void;
   onOpenSubmissionsModal?: () => void;
   onOpenSupervisorModal?: () => void;
-  onOpenAiModal?: () => void;
   onOpenSettingsModal?: () => void;
 }
 
@@ -26,7 +25,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTransferModal,
   onOpenSubmissionsModal,
   onOpenSupervisorModal,
-  onOpenAiModal,
   onOpenSettingsModal
 }) => {
   const { 
@@ -198,20 +196,6 @@ export const Header: React.FC<HeaderProps> = ({
                   {pendingSubmissionsCount}
                 </span>
               )}
-            </button>
-          )}
-
-          {/* AI Quran Assistant Button */}
-          {onOpenAiModal && (
-            <button
-              type="button"
-              id="ai-assistant-btn"
-              onClick={onOpenAiModal}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 border border-emerald-500/40 text-emerald-100 hover:text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all cursor-pointer shrink-0 shadow-xs"
-              title="مساعد الحلقة الذكي (Gemini 3.8 Flash)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span className="hidden md:inline">مساعد الحلقة (Gemini)</span>
             </button>
           )}
 
