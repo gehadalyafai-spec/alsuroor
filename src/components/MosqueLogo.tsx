@@ -1,4 +1,5 @@
 import React from 'react';
+import brandLogo from '../assets/images/quran_minaret_emblem_1789297489319.jpg';
 
 interface MosqueLogoProps {
   className?: string;
@@ -24,7 +25,7 @@ export const MosqueLogo: React.FC<MosqueLogoProps> = ({
   if (variant === 'image') {
     return (
       <img 
-        src="/mosque_icon.jpg" 
+        src={brandLogo} 
         alt="شعار جامع السرور وحلقة القرآن الكريم"
         referrerPolicy="no-referrer"
         className={`object-cover rounded-xl shadow-sm ${imgSizeClass} ${className}`}
@@ -35,7 +36,7 @@ export const MosqueLogo: React.FC<MosqueLogoProps> = ({
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-white shadow-sm border border-emerald-800/20 p-0.5 shrink-0 flex items-center justify-center ${imgSizeClass} ${className}`}>
       <img 
-        src="/mosque_icon.jpg" 
+        src={brandLogo} 
         alt="شعار جامع السرور وحلقة القرآن الكريم"
         referrerPolicy="no-referrer"
         className="w-full h-full object-contain rounded-xl"
