@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Exact Islamic Emerald Gradient from the original logo -->
+    <linearGradient id="mosqueExactGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#086e3f" />
+      <stop offset="50%" stop-color="#0b7a47" />
+      <stop offset="100%" stop-color="#128b52" />
+    </linearGradient>
+
+    <!-- Deep green shadow tone for depth -->
+    <linearGradient id="mosqueDeepGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0b7a47" />
+      <stop offset="100%" stop-color="#044d2b" />
+    </linearGradient>
+
+    <!-- Seamless Islamic 8-Point Star and Octagonal Girih Strapwork -->
+    <pattern id="islamicPatternExact" width="44" height="44" patternUnits="userSpaceOnUse">
+      <rect width="44" height="44" fill="url(#mosqueExactGreen)"/>
+      <g stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <!-- Center 8-pointed star at (22,22) -->
+        <polygon points="22,8 26.5,17.5 36,22 26.5,26.5 22,36 17.5,26.5 8,22 17.5,17.5" />
+        <!-- Concentric rotated squares forming the 8-pointed star base -->
+        <rect x="11" y="11" width="22" height="22" transform="rotate(45 22 22)" />
+        <rect x="11" y="11" width="22" height="22" />
+        <!-- Outer connecting arabesque ties -->
+        <line x1="0" y1="0" x2="11" y2="11" />
+        <line x1="44" y1="0" x2="33" y2="11" />
+        <line x1="0" y1="44" x2="11" y2="33" />
+        <line x1="44" y1="44" x2="33" y2="33" />
+        <line x1="22" y1="0" x2="22" y2="8" />
+        <line x1="22" y1="36" x2="22" y2="44" />
+        <line x1="0" y1="22" x2="8" y2="22" />
+        <line x1="36" y1="22" x2="44" y2="22" />
+        <!-- Corner half-stars -->
+        <polygon points="0,0 6,0 0,6" fill="url(#mosqueExactGreen)" />
+        <polygon points="44,0 38,0 44,6" fill="url(#mosqueExactGreen)" />
+        <polygon points="0,44 6,44 0,38" fill="url(#mosqueExactGreen)" />
+        <polygon points="44,44 38,44 44,38" fill="url(#mosqueExactGreen)" />
+      </g>
+    </pattern>
+  </defs>
+
+  <g id="mosque-official-logo">
+    <!-- 1. DOME BASE (Solid Green) -->
+    <path d="M 260,186 
+             C 285,248 335,296 392,342 
+             C 328,370 230,372 142,336
+             L 142,275
+             C 178,272 230,240 260,186 Z" 
+          fill="url(#mosqueExactGreen)" />
+
+    <!-- 2. DOME ARABESQUE PATTERNED INLAY -->
+    <path d="M 260,215 
+             C 280,258 322,300 376,336 
+             C 322,354 240,355 156,328
+             C 182,298 228,260 260,215 Z" 
+          fill="url(#islamicPatternExact)" />
+
+    <!-- 3. LOWER DOME SHADING -->
+    <path d="M 142,336 
+             C 230,372 328,370 392,342
+             C 320,380 220,382 142,348 Z" 
+          fill="url(#mosqueDeepGreen)" />
+
+    <!-- 4. MINARET BASE WALL & SHELVES -->
+    <!-- Base vertical wall -->
+    <path d="M 142,275 L 196,275 L 196,350 L 142,340 Z" fill="url(#mosqueExactGreen)" />
+    <!-- Lower balcony shelf extending left -->
+    <path d="M 132,275 L 196,275 L 196,285 L 132,285 Z" fill="url(#mosqueExactGreen)" />
+    <!-- Left bracket supporting shelf -->
+    <polygon points="132,285 142,300 142,285" fill="url(#mosqueDeepGreen)" />
+
+    <!-- 5. MINARET SHAFT (بدن المئذنة) -->
+    <rect x="150" y="210" width="42" height="65" fill="url(#mosqueExactGreen)" />
+
+    <!-- Arched Window in Minaret Shaft (White Cutout) -->
+    <path d="M 162,270 L 162,236 C 162,226 180,226 180,236 L 180,270 Z" fill="#ffffff" />
+
+    <!-- 6. MINARET BALCONY (شرفة المئذنة) -->
+    <!-- Railing / Ledge -->
+    <polygon points="142,204 200,204 204,212 138,212" fill="url(#mosqueExactGreen)" />
+    <rect x="144" y="200" width="54" height="4" fill="url(#mosqueExactGreen)" />
+
+    <!-- 7. MINARET CAP / DOME (قبة المئذنة) -->
+    <path d="M 150,200 
+             C 150,172 171,154 171,154 
+             C 171,154 192,172 192,200 Z" 
+          fill="url(#mosqueExactGreen)" />
+    
+    <!-- Small arched cutout in minaret cap -->
+    <path d="M 166,194 L 166,180 C 166,174 176,174 176,180 L 176,194 Z" fill="#ffffff" />
+
+    <!-- 8. FINIAL SPIRE (عمود الهلال والكرات) -->
+    <line x1="171" y1="108" x2="171" y2="154" stroke="url(#mosqueExactGreen)" stroke-width="3.5" stroke-linecap="round" />
+    <!-- Lower sphere -->
+    <circle cx="171" cy="144" r="5" fill="url(#mosqueExactGreen)" />
+    <!-- Middle sphere -->
+    <circle cx="171" cy="130" r="4" fill="url(#mosqueExactGreen)" />
+    <!-- Top small sphere -->
+    <circle cx="171" cy="116" r="3" fill="url(#mosqueExactGreen)" />
+
+    <!-- 9. CRESCENT MOON (الهلال) -->
+    <!-- Slender crescent tilted upwards to the right -->
+    <path d="M 171,88 
+             C 162,94 158,105 163,115 
+             C 168,124 179,127 188,120 
+             C 177,123 167,117 165,108 
+             C 163,100 167,93 171,88 Z" 
+          fill="url(#mosqueExactGreen)" />
+
+    <!-- 10. GROUND / BASE SWOOP (القوس السفلي الرشيق) -->
+    <path d="M 130,358 
+             C 210,388 320,388 418,354 
+             C 320,396 210,396 130,358 Z" 
+          fill="url(#mosqueExactGreen)" />
+  </g>
+</svg>
