@@ -27,6 +27,7 @@ import {
   CalendarDays, CheckSquare, Layers
 } from 'lucide-react';
 import { AppSettingsModal } from './AppSettingsModal';
+import { MosqueLogo } from './MosqueLogo';
 
 interface StudentPortalViewProps {
   onLogout?: () => void;
@@ -279,7 +280,8 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
       <header className={`border-b sticky top-0 z-30 shadow-md transition-colors duration-200 ${headerPreset.headerClass}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl ${student.avatarColor || 'bg-emerald-700'} text-white font-bold flex items-center justify-center text-base shadow-inner`}>
+            <MosqueLogo size="md" />
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl ${student.avatarColor || 'bg-emerald-700'} text-white font-bold flex items-center justify-center text-base shadow-inner`}>
               {student.name.charAt(0)}
             </div>
             <div>
