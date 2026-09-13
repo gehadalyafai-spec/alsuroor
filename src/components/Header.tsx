@@ -3,6 +3,7 @@ import { useQuran } from '../context/QuranContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { MosqueLogo } from './MosqueLogo';
+import { getDeviceTodayDateStr } from '../utils/quranLogic';
 import { 
   BookOpen, Users, Calendar, CheckSquare, HelpCircle, Plus, 
   Download, Upload, RotateCcw, Cloud, CloudOff, 
@@ -63,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(exportDataJson());
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `quran_circle_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute('download', `quran_circle_backup_${getDeviceTodayDateStr()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

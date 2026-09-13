@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { Student, SessionRecord, DailyRevisionRecord } from '../types/quran';
 import { getQuarterDetails } from '../data/quranData';
-import { formatRubsToJuzDescription } from './quranLogic';
+import { formatRubsToJuzDescription, getDeviceTodayDateStr } from './quranLogic';
 
 /**
  * Exports all students summary and statistics into a formatted Excel (.xlsx) file
@@ -91,7 +91,7 @@ export function exportAllStudentsToExcel(
   XLSX.utils.book_append_sheet(workbook, wsStudents, 'بيانات الطلاب');
   XLSX.utils.book_append_sheet(workbook, wsSessions, 'سجل التسميعات');
 
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const dateStr = getDeviceTodayDateStr();
   XLSX.writeFile(workbook, `تقرير_شامل_${circleName.replace(/\s+/g, '_')}_${dateStr}.xlsx`);
 }
 
@@ -192,5 +192,5 @@ export function exportStudentToExcel(
   XLSX.utils.book_append_sheet(workbook, wsRevisions, 'سجل الورد اليومي');
 
   const safeName = student.name.trim().replace(/\s+/g, '_');
-  XLSX.writeFile(workbook, `تقرير_الطالب_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(workbook, `تقرير_الطالب_${safeName}_${getDeviceTodayDateStr()}.xlsx`);
 }

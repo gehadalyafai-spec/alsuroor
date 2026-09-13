@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Student } from '../types/quran';
 import { getQuarterDetails } from '../data/quranData';
 import { exportAllStudentsToExcel, exportStudentToExcel } from '../utils/exportReports';
+import { formatLocalDateStr } from '../utils/quranLogic';
 import { MosqueLogo } from './MosqueLogo';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -104,7 +105,7 @@ export const ReportsView: React.FC = () => {
     for (let i = 13; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = formatLocalDateStr(d);
       const shortLabel = `${d.getMonth() + 1}/${d.getDate()}`;
       map.set(dateStr, { date: shortLabel, sessions: 0, revisions: 0 });
     }

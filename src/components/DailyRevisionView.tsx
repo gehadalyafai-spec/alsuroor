@@ -5,7 +5,11 @@ import {
   ARABIC_DAYS, 
   getWeeklySchedule,
   getCycleDaysBreakdown,
-  formatQuranProgress 
+  formatQuranProgress,
+  getDeviceTodayDateStr,
+  formatLocalDateStr,
+  parseLocalDate,
+  addDaysToDateStr
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
 import { RevisionStatus } from '../types/quran';
@@ -34,20 +38,18 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
   const [viewMode, setViewMode] = useState<'cards' | 'matrix'>('cards');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const currentDateObj = new Date(selectedDate);
+  const currentDateObj = parseLocalDate(selectedDate);
   const dayOfWeek = currentDateObj.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
   const dayName = ARABIC_DAYS[dayOfWeek];
   const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3;
 
   const changeDateByDays = (days: number) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + days);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(addDaysToDateStr(selectedDate, days));
   };
 
   // Find start of week (Sunday) for matrix view
   const weekDays = useMemo(() => {
-    const d = new Date(selectedDate);
+    const d = parseLocalDate(selectedDate);
     const day = d.getDay();
     const sunday = new Date(d);
     sunday.setDate(d.getDate() - day);
@@ -57,7 +59,7 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
       const dayDate = new Date(sunday);
       dayDate.setDate(sunday.getDate() + i);
       week.push({
-        dateStr: dayDate.toISOString().split('T')[0],
+        dateStr: formatLocalDateStr(dayDate),
         dayName: ARABIC_DAYS[i],
         dayIndex: i,
       });
@@ -216,7 +218,7 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
             </button>
 
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              onClick={() => setSelectedDate(getDeviceTodayDateStr())}
               className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold px-3 py-2 rounded-lg transition-colors border border-stone-200"
             >
               اليوم
@@ -228,7 +230,7 @@ export const DailyRevisionView: React.FC<DailyRevisionViewProps> = ({ onOpenStud
         <div className="grid grid-cols-7 gap-1.5 mt-3 pt-3 border-t border-stone-100">
           {weekDays.map((wd) => {
             const isSelected = wd.dateStr === selectedDate;
-            const isToday = wd.dateStr === new Date().toISOString().split('T')[0];
+            const isToday = wd.dateStr === getDeviceTodayDateStr();
             const isDayCircle = wd.dayIndex === 0 || wd.dayIndex === 3;
 
             return (

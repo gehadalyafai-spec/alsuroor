@@ -14,7 +14,10 @@ import {
   getSessionWirdIntervalDays,
   calculateStudentStats,
   getStudentRotatedCycle,
-  ARABIC_DAYS
+  ARABIC_DAYS,
+  getDeviceTodayDateStr,
+  formatLocalDateStr,
+  parseLocalDate
 } from '../utils/quranLogic';
 import { exportStudentToExcel } from '../utils/exportReports';
 import { RevisionStatus, SessionGrade } from '../types/quran';
@@ -110,14 +113,14 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   };
 
   // Daily revision form state
-  const [revisionDate, setRevisionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [revisionDate, setRevisionDate] = useState<string>(() => getDeviceTodayDateStr());
   const [revStatus, setRevStatus] = useState<RevisionStatus>('completed');
   const [revNotes, setRevNotes] = useState<string>('');
   const [isSubmittingRev, setIsSubmittingRev] = useState(false);
   const [revSuccessMsg, setRevSuccessMsg] = useState(false);
 
   // Session recitation form state
-  const [sessionDate, setSessionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [sessionDate, setSessionDate] = useState<string>(() => getDeviceTodayDateStr());
   const [sessionNotes, setSessionNotes] = useState<string>('');
   const [isSubmittingSession, setIsSubmittingSession] = useState(false);
   const [sessionSuccessMsg, setSessionSuccessMsg] = useState(false);
@@ -147,11 +150,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
   const currentQ = getQuarterByNumber(student.currentRub);
   const plan = getRequiredRecitationForSession(student.currentRub);
   
-  const revDateObj = new Date(revisionDate + 'T00:00:00');
+  const revDateObj = parseLocalDate(revisionDate);
   const revDayOfWeek = isNaN(revDateObj.getDay()) ? 4 : revDateObj.getDay();
-  const sessionDateObj = new Date(sessionDate + 'T00:00:00');
+  const sessionDateObj = parseLocalDate(sessionDate);
   const sessionDayOfWeek = isNaN(sessionDateObj.getDay()) ? 0 : sessionDateObj.getDay();
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = getDeviceTodayDateStr();
   const revPlan = getDailyRevisionAssignment(student.currentRub, revDayOfWeek, revDayOfWeek, student);
 
   const studentSessions = sessionRecords.filter(s => s.studentId === student.id);
@@ -248,18 +251,18 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
       const diff = currentDay <= 3 ? 3 - currentDay : 10 - currentDay;
       d.setDate(today.getDate() + diff);
     }
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = formatLocalDateStr(d);
     setSessionDate(dateStr);
     setActiveTab('session');
   };
 
   // Helper to jump to interval in daily revision
   const jumpToInterval = (type: 'sunday_period' | 'wednesday_period' | 'today') => {
-    const today = new Date();
     if (type === 'today') {
-      setRevisionDate(today.toISOString().split('T')[0]);
+      setRevisionDate(getDeviceTodayDateStr());
       return;
     }
+    const today = new Date();
     const d = new Date(today);
     const day = today.getDay();
     if (type === 'sunday_period') {
@@ -271,7 +274,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({ onLogout }
       const daysToMonday = (1 - day + 7) % 7;
       d.setDate(today.getDate() + daysToMonday);
     }
-    setRevisionDate(d.toISOString().split('T')[0]);
+    setRevisionDate(formatLocalDateStr(d));
   };
 
   return (

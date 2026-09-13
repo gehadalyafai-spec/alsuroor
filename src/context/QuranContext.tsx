@@ -39,6 +39,7 @@ import {
   takeSafetySnapshot, 
   exportBackupToFile 
 } from '../utils/backupManager';
+import { getDeviceTodayDateStr } from '../utils/quranLogic';
 
 const STORAGE_KEY = 'quran_circle_tracker_v1';
 
@@ -346,14 +347,14 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return [];
   });
 
+  // Always synchronize with today's local device date on app open
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     try {
-      const savedDate = localStorage.getItem(STORAGE_KEY + '_lastDate');
-      if (savedDate) return savedDate;
+      localStorage.removeItem(STORAGE_KEY + '_lastDate');
     } catch {
       // ignore
     }
-    return new Date().toISOString().split('T')[0];
+    return getDeviceTodayDateStr();
   });
 
   const [activeTab, setActiveTab] = useState<'sessions' | 'revision' | 'students' | 'reports' | 'quranIndex' | 'mutashabihat' | 'guide'>('sessions');
@@ -415,14 +416,13 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.setItem(STORAGE_KEY + '_sessions', JSON.stringify(sessionRecords));
         localStorage.setItem(STORAGE_KEY + '_revisions', JSON.stringify(dailyRevisionRecords));
         localStorage.setItem(STORAGE_KEY + '_submissions', JSON.stringify(rawSubmissions));
-        localStorage.setItem(STORAGE_KEY + '_lastDate', selectedDate);
       } catch (e) {
         console.error('Error saving to localStorage', e);
       }
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [students, sessionRecords, dailyRevisionRecords, rawSubmissions, selectedDate]);
+  }, [students, sessionRecords, dailyRevisionRecords, rawSubmissions]);
 
   // Real-time Firestore synchronization for submissions
   useEffect(() => {
@@ -825,9 +825,8 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setDailyRevisionRecords(loadedRevisions);
           }
           if (dataToLoad.lastState) {
-            if (dataToLoad.lastState.selectedDate) {
-              setSelectedDate(dataToLoad.lastState.selectedDate);
-            }
+            // Keep selectedDate synchronized with today's device date on app open
+            // Do not override with historical dates from cloud state
             if (dataToLoad.lastState.activeTab) {
               setActiveTab(dataToLoad.lastState.activeTab);
             }
@@ -1002,7 +1001,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       parentPhone: parentPhone.trim(),
       email: email.trim(),
       accessCode: generatedCode,
-      joinDate: new Date().toISOString().split('T')[0],
+      joinDate: getDeviceTodayDateStr(),
       currentRub: Math.max(1, Math.min(240, Number(initialRub) || 1)),
       completedRubCount: Math.max(0, (Number(initialRub) || 1) - 1),
       status: 'active',
@@ -1455,7 +1454,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             phone: regData.phone || '',
             parentPhone: regData.parentPhone || '',
             status: 'active',
-            joinDate: new Date().toISOString().split('T')[0],
+            joinDate: getDeviceTodayDateStr(),
           };
 
           const pinCheck = verifyPin(fallbackStudent);

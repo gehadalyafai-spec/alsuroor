@@ -9,7 +9,11 @@ import {
   formatQuranProgress,
   formatRemainingQuranProgress,
   formatCurrentRubDetailed,
-  generateWhatsAppMessage
+  generateWhatsAppMessage,
+  getDeviceTodayDateStr,
+  formatLocalDateStr,
+  parseLocalDate,
+  addDaysToDateStr
 } from '../utils/quranLogic';
 import { getQuarterByNumber } from '../data/quranData';
 import { Student, SessionGrade, RevisionStatus } from '../types/quran';
@@ -86,7 +90,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
   const isWednesday = dayOfWeek === 3;
   const dayName = ARABIC_DAYS[dayOfWeek];
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getDeviceTodayDateStr();
 
   const saveAttendance = (studentId: string, status: AttendanceType) => {
     // Attendance is strictly active on Sunday and Wednesday only
@@ -140,25 +144,23 @@ export const SessionView: React.FC<SessionViewProps> = ({ onOpenStudentModal }) 
 
   // Quick navigation helpers
   const changeDateByDays = (days: number) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + days);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(addDaysToDateStr(selectedDate, days));
   };
 
   const jumpToSunday = () => {
-    const d = new Date(selectedDate);
+    const d = parseLocalDate(selectedDate);
     const dow = d.getDay();
     const diff = (7 - dow) % 7 || 7;
     d.setDate(d.getDate() + (dow === 0 ? 0 : diff));
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatLocalDateStr(d));
   };
 
   const jumpToWednesday = () => {
-    const d = new Date(selectedDate);
+    const d = parseLocalDate(selectedDate);
     const dow = d.getDay();
     const diff = (3 - dow + 7) % 7 || 7;
     d.setDate(d.getDate() + (dow === 3 ? 0 : diff));
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatLocalDateStr(d));
   };
 
   const activeStudents = useMemo(() => {

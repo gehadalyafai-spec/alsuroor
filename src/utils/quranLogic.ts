@@ -4,6 +4,49 @@ import { getQuarterByNumber } from '../data/quranData';
 export const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 /**
+ * Returns today's exact local calendar date from the user's device in YYYY-MM-DD format.
+ * Prevents UTC timezone drift errors (e.g. at late night / early morning).
+ */
+export function getDeviceTodayDateStr(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Formats a Date object into local YYYY-MM-DD string according to device clock.
+ */
+export function formatLocalDateStr(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Safely parses a YYYY-MM-DD date string into a local Date instance anchored at noon (12:00)
+ * to avoid daylight saving and UTC timezone shifts.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  }
+  return new Date();
+}
+
+/**
+ * Safely adds or subtracts days to a YYYY-MM-DD string without UTC shifting.
+ */
+export function addDaysToDateStr(dateStr: string, days: number): string {
+  const d = parseLocalDate(dateStr);
+  d.setDate(d.getDate() + days);
+  return formatLocalDateStr(d);
+}
+
+/**
  * Calculates the exact quarters a student must recite during a circle session (الأحد أو الأربعاء).
  * Rule:
  * - Quarter 1: [1] (1 quarter)
@@ -511,8 +554,8 @@ export function getDailyRevisionAssignment(
 /**
  * Generates the full 7-day schedule for the current or specified week for a student.
  */
-export function getWeeklySchedule(student: Student, referenceDate: Date = new Date()): DailyScheduleDay[] {
-  const current = new Date(referenceDate);
+export function getWeeklySchedule(student: Student, referenceDate: Date | string = new Date()): DailyScheduleDay[] {
+  const current = typeof referenceDate === 'string' ? parseLocalDate(referenceDate) : new Date(referenceDate);
   const day = current.getDay(); // 0 is Sunday
   const diffToSunday = day;
   const sunday = new Date(current);
@@ -524,7 +567,7 @@ export function getWeeklySchedule(student: Student, referenceDate: Date = new Da
     const dateObj = new Date(sunday);
     dateObj.setDate(sunday.getDate() + i);
 
-    const dateStr = dateObj.toISOString().split('T')[0];
+    const dateStr = formatLocalDateStr(dateObj);
     const dayOfWeek = i; // 0=Sun, 1=Mon, ..., 6=Sat
     const dayName = ARABIC_DAYS[dayOfWeek];
     const isCircleDay = dayOfWeek === 0 || dayOfWeek === 3;
@@ -582,7 +625,7 @@ export function calculateStudentStats(student: Student) {
     rubInJuz,
     progressPercent,
     nextCircleDayName: nextCircleDate.getDay() === 0 ? 'الأحد' : 'الأربعاء',
-    nextCircleDateStr: nextCircleDate.toISOString().split('T')[0],
+    nextCircleDateStr: formatLocalDateStr(nextCircleDate),
     isTodayCircleDay: todayDay === 0 || todayDay === 3,
   };
 }

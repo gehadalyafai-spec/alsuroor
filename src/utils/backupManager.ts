@@ -1,4 +1,5 @@
 import { LocalBackupSnapshot, Student, SessionRecord, DailyRevisionRecord, StudentSubmission } from '../types/quran';
+import { formatLocalDateStr } from './quranLogic';
 
 export const LOCAL_BACKUPS_STORAGE_KEY = 'quran_circle_local_backups';
 const MAX_LOCAL_BACKUPS = 25;
@@ -230,7 +231,7 @@ export function exportBackupToFile(data: LocalBackupSnapshot['data'], customFile
     const url = URL.createObjectURL(blob);
 
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = formatLocalDateStr(now);
     const defaultName = `نسخة_حلقة_القرآن_${dateStr}_${data.students.length}_طلاب.json`;
     const finalFilename = customFilename || defaultName;
 
