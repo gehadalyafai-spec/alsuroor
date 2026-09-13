@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useQuran } from '../context/QuranContext';
+import { MosqueLogo } from './MosqueLogo';
 import { 
   BookOpen, Mail, Lock, User, ArrowLeft, CheckCircle2, 
   Cloud, Sparkles, ShieldCheck, RefreshCw, KeyRound, AlertCircle, LogIn, UserPlus,
@@ -138,8 +139,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest, initialUs
         
         {/* Brand Header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-600 items-center justify-center text-white shadow-xl shadow-emerald-950/50 border border-emerald-500/30">
-            <BookOpen className="w-8 h-8" />
+          <div className="flex justify-center">
+            <MosqueLogo size="xl" className="shadow-xl" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold font-['Amiri',serif] tracking-wide text-white">

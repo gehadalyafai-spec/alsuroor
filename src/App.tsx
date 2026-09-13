@@ -21,6 +21,7 @@ import { StudentPortalView } from './components/StudentPortalView';
 import { StudentSubmissionsModal } from './components/StudentSubmissionsModal';
 import { SupervisorManagementModal } from './components/SupervisorManagementModal';
 import { AppSettingsModal } from './components/AppSettingsModal';
+import { MosqueLogo } from './components/MosqueLogo';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Calendar, CheckSquare, Users, BookOpen, HelpCircle, RefreshCw, TrendingUp } from 'lucide-react';
 
@@ -50,8 +51,8 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-stone-900 flex flex-col items-center justify-center p-4 text-stone-100 font-['Cairo',sans-serif]">
         <div className="text-center space-y-4 max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-600 flex items-center justify-center text-white mx-auto shadow-2xl border border-emerald-500/30 animate-pulse">
-            <BookOpen className="w-8 h-8" />
+          <div className="flex justify-center">
+            <MosqueLogo size="lg" className="shadow-2xl" />
           </div>
           <div>
             <h2 className="text-xl font-bold font-['Amiri',serif]">جامع السرور</h2>

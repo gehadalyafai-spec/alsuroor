@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuran } from '../context/QuranContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { MosqueLogo } from './MosqueLogo';
 import { 
   BookOpen, Users, Calendar, CheckSquare, HelpCircle, Plus, 
   Download, Upload, RotateCcw, Cloud, CloudOff, 
@@ -96,9 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-6xl mx-auto px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
         {/* Brand */}
         <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-emerald-100 shadow-inner shrink-0">
-            <BookOpen className="w-5 h-5" />
-          </div>
+          <MosqueLogo size="md" />
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <h1 className={`font-bold text-base sm:text-lg tracking-wide font-['Amiri',serif] ${headerPreset.textMainClass}`}>

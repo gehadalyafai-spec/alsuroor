@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Student } from '../types/quran';
 import { getQuarterDetails } from '../data/quranData';
 import { exportAllStudentsToExcel, exportStudentToExcel } from '../utils/exportReports';
+import { MosqueLogo } from './MosqueLogo';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, AreaChart, Area, Legend 
@@ -674,9 +675,7 @@ export const ReportsView: React.FC = () => {
                   {/* Official Header */}
                   <div className="border-b border-stone-200 pb-6 flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-800 text-white flex items-center justify-center font-bold font-['Amiri',serif] text-2xl shadow-sm">
-                        ق
-                      </div>
+                      <MosqueLogo size="lg" />
                       <div>
                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                           بطاقة متابعة طالب — حلقة القرآن الكريم
