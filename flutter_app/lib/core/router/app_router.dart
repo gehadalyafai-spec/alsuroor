@@ -11,6 +11,7 @@ import '../../features/sessions/presentation/workspace_screen.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
+    redirect: (context, state) => state.uri.path == '/' ? null : '/',
     routes: [
       GoRoute(
         path: '/',
