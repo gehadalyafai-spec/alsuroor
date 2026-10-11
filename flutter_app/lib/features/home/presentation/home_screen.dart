@@ -85,17 +85,17 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             const Row(
               children: [
-                Expanded(child: _FeatureCard(title: 'التسميع', icon: Icons.record_voice_over_rounded)),
+                Expanded(child: _FeatureCard(title: 'التسميع', icon: Icons.record_voice_over_rounded, onTap: () => context.push('/workspace/recitation'))),
                 SizedBox(width: 12),
-                Expanded(child: _FeatureCard(title: 'الورد', icon: Icons.fact_check_rounded)),
+                Expanded(child: _FeatureCard(title: 'الورد', icon: Icons.fact_check_rounded, onTap: () => context.push('/workspace/review'))),
               ],
             ),
             const SizedBox(height: 12),
             const Row(
               children: [
-                Expanded(child: _FeatureCard(title: 'التقارير', icon: Icons.insights_rounded)),
+                Expanded(child: _FeatureCard(title: 'التقارير', icon: Icons.insights_rounded, onTap: () => context.push('/workspace/reports'))),
                 SizedBox(width: 12),
-                Expanded(child: _FeatureCard(title: 'المصحف', icon: Icons.menu_book_rounded)),
+                Expanded(child: _FeatureCard(title: 'المصحف', icon: Icons.menu_book_rounded, onTap: () => context.push('/workspace/mushaf'))),
               ],
             ),
           ],
@@ -153,15 +153,19 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({required this.title, required this.icon});
+  const _FeatureCard({required this.title, required this.icon, required this.onTap});
 
   final String title;
   final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,8 +174,9 @@ class _FeatureCard extends StatelessWidget {
             const SizedBox(height: 14),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            const Text('سيُنقل في المرحلة التالية'),
+            const Text('اضغط للفتح'),
           ],
+        ),
         ),
       ),
     );
