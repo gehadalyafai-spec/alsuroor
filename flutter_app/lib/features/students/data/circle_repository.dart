@@ -79,7 +79,7 @@ class CircleRepository {
           '${now.month.toString().padLeft(2, '0')}-'
           '${now.day.toString().padLeft(2, '0')}';
 
-      final safeRub = currentRub.clamp(1, 240);
+      final safeRub = currentRub.clamp(1, 240).toInt();
       final student = Student(
         id: id,
         name: name.trim(),
@@ -88,7 +88,7 @@ class CircleRepository {
         accessCode: accessCode,
         joinDate: date,
         currentRub: safeRub,
-        completedRubCount: (safeRub - 1).clamp(0, 240),
+        completedRubCount: (safeRub - 1).clamp(0, 240).toInt(),
         status: 'active',
         notes: '',
       );
