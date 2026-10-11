@@ -83,6 +83,12 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/analytics'),
+              icon: const Icon(Icons.analytics_outlined),
+              label: const Text('لوحة إحصاءات الحلقة'),
+            ),
+            const SizedBox(height: 12),
             Text('السجلات الفعلية', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Row(children: [
