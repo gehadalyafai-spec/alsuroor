@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/auth_gate_screen.dart';
 import '../../features/students/presentation/students_screen.dart';
+import '../../features/history/history_screen.dart';
 import '../../features/students/presentation/student_detail_screen.dart';
 import '../../features/sessions/presentation/workspace_screen.dart';
 
@@ -13,6 +14,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const AuthGateScreen(),
+      ),
+      GoRoute(
+        path: '/history/sessions',
+        builder: (context, state) => const HistoryScreen(showRevisions: false),
+      ),
+      GoRoute(
+        path: '/history/revisions',
+        builder: (context, state) => const HistoryScreen(showRevisions: true),
       ),
       ...WorkspaceMode.values.map((mode) => GoRoute(
         path: '/workspace/${mode.name}',
