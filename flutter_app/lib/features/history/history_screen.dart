@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../students/data/circle_repository.dart';
+import '../students/data/circle_repository.dart';
 import 'data/history_repository.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
