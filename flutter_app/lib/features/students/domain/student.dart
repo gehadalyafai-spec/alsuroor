@@ -34,8 +34,8 @@ class Student {
       email: map['email']?.toString(),
       accessCode: (map['accessCode'] ?? '').toString(),
       joinDate: (map['joinDate'] ?? '').toString(),
-      currentRub: _asInt(map['currentRub'], fallback: 1).clamp(1, 240),
-      completedRubCount: _asInt(map['completedRubCount']).clamp(0, 240),
+      currentRub: _asInt(map['currentRub'], fallback: 1).clamp(1, 240).toInt(),
+      completedRubCount: _asInt(map['completedRubCount']).clamp(0, 240).toInt(),
       status: (map['status'] ?? 'active').toString(),
       notes: (map['notes'] ?? '').toString(),
     );
