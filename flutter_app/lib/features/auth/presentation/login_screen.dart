@@ -14,7 +14,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _registerMode = false;
   bool _busy = false;
   String? _error;
 
@@ -34,11 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final repo = ref.read(authRepositoryProvider);
-      if (_registerMode) {
-        await repo.register(email: _email.text, password: _password.text);
-      } else {
-        await repo.signIn(email: _email.text, password: _password.text);
-      }
+      await repo.signIn(email: _email.text, password: _password.text);
     } on FirebaseAuthException catch (error) {
       setState(() {
         _error = switch (error.code) {
@@ -49,6 +44,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _ => error.message ?? 'تعذر تسجيل الدخول',
         };
       });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _signInGoogle() async {
+    if (_busy) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+    } on FirebaseAuthException catch (error) {
+      if (mounted) setState(() => _error = 'تعذر تسجيل الدخول باستخدام Google: ${error.message ?? error.code}');
+    } catch (error) {
+      if (mounted) setState(() => _error = 'تعذر تسجيل الدخول باستخدام Google: $error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -86,6 +95,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 6),
                   const Text('إدارة الحلقة القرآنية'),
                   const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : _signInGoogle,
+                      icon: const Icon(Icons.account_circle_outlined),
+                      label: const Text('المتابعة باستخدام Google'),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('أو الدخول بالبريد الإلكتروني'),
+                  const SizedBox(height: 18),
                   TextField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
@@ -120,20 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               dimension: 22,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(_registerMode ? 'إنشاء الحساب' : 'تسجيل الدخول'),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() {
-                              _registerMode = !_registerMode;
-                              _error = null;
-                            }),
-                    child: Text(
-                      _registerMode
-                          ? 'لديك حساب؟ سجّل الدخول'
-                          : 'إنشاء حساب مشرف جديد',
+                          : const Text('تسجيل الدخول'),
                     ),
                   ),
                   const SizedBox(height: 8),
