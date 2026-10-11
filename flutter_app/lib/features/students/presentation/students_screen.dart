@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../auth/data/auth_repository.dart';
 import '../data/circle_repository.dart';
@@ -40,6 +41,7 @@ class StudentsScreen extends ConsumerWidget {
               final student = items[index];
               return Card(
                 child: ListTile(
+                  onTap: () => context.push('/students/${Uri.encodeComponent(student.id)}'),
                   leading: CircleAvatar(
                     child: Text(
                       student.name.trim().isEmpty ? '؟' : student.name.trim()[0],
