@@ -45,13 +45,26 @@ class HomeScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 6),
-            const Text('نسخة Flutter تقرأ حاليًا بيانات الطلاب الموجودة في Firebase.'),
+            const Text('هذه نسخة Flutter تجريبية. تسجيل الدخول يعمل، لكن نقل بيانات ووظائف موقع جامع السرور لم يكتمل بعد.'),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('عدد الطلاب أدناه يخص الوثيقة التي يحاول التطبيق قراءتها فقط، وليس بالضرورة إجمالي طلاب الموقع. إضافة وتعديل البيانات معطلان مؤقتًا لحماية السجلات.')),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             students.when(
               data: (items) => _SummaryCard(
                 title: 'الطلاب',
                 value: '${items.length}',
-                subtitle: 'طلاب الحلقة المسجلون',
+                subtitle: 'طلاب الوثيقة المرتبطة بالحساب',
                 icon: Icons.groups_rounded,
                 onTap: () => context.push('/students'),
               ),
