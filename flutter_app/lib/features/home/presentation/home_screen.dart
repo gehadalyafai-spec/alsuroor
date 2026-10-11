@@ -83,6 +83,22 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
+            Text('السجلات الفعلية', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () => context.push('/history/sessions'),
+                icon: const Icon(Icons.history_rounded),
+                label: const Text('سجل التسميع'),
+              )),
+              const SizedBox(width: 8),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () => context.push('/history/revisions'),
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text('سجل المراجعة'),
+              )),
+            ]),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(child: _FeatureCard(title: 'التسميع', icon: Icons.record_voice_over_rounded, onTap: () => context.push('/workspace/recitation'))),
