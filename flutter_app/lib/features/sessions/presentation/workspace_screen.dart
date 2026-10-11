@@ -158,13 +158,13 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     ]);
   }
 
-  Widget _notice() => Card(
+  Widget _notice() => const Card(
     child: Padding(
       padding: const EdgeInsets.all(14),
       child: Row(children: [
-        const Icon(Icons.verified_user_outlined),
-        const SizedBox(width: 12),
-        const Expanded(
+        Icon(Icons.verified_user_outlined),
+        SizedBox(width: 12),
+        Expanded(
           child: Text('وضع القراءة الآمن: لا توجد عمليات كتابة أو اعتماد نتائج على بيانات الموقع.'),
         ),
       ]),
