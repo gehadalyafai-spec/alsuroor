@@ -28,10 +28,12 @@ class StudentsScreen extends ConsumerWidget {
       ),
       body: students.when(
         data: (items) {
-          if (items.isEmpty) return const Center(child: Padding(
+          if (items.isEmpty) {
+            return const Center(child: Padding(
             padding: EdgeInsets.all(24),
             child: Text('لم تُرجع وثيقة الحلقة المرتبطة بحسابك أي طلاب. قد تكون بيانات الموقع محفوظة في مسار آخر، ولا يعني ذلك عدم وجود طلاب في النظام.', textAlign: TextAlign.center),
-          ));
+            ));
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
