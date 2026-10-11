@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/circle_repository.dart';
+import '../../history/data/history_repository.dart';
 
 class StudentDetailScreen extends ConsumerWidget {
   const StudentDetailScreen({super.key, required this.studentId});
@@ -11,6 +12,7 @@ class StudentDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final students = ref.watch(circleStudentsProvider);
+    final history = ref.watch(circleHistoryProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('ملف الطالب')),
       body: students.when(
@@ -41,6 +43,36 @@ class StudentDetailScreen extends ConsumerWidget {
               _InfoTile(title: 'الحالة', value: student.status),
               if (student.notes.trim().isNotEmpty)
                 _InfoTile(title: 'ملاحظات', value: student.notes),
+              const SizedBox(height: 20),
+              Text('السجلات الفعلية', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              history.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (error, _) => Text('تعذر قراءة السجلات: $error'),
+                data: (data) {
+                  final sessions = data.sessions.where((e) => e.studentId == studentId).toList()
+                    ..sort((a, b) => b.date.compareTo(a.date));
+                  final revisions = data.revisions.where((e) => e.studentId == studentId).toList()
+                    ..sort((a, b) => b.date.compareTo(a.date));
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _InfoTile(title: 'جلسات التسميع', value: '${sessions.length}'),
+                      _InfoTile(title: 'سجلات المراجعة', value: '${revisions.length}'),
+                      const SizedBox(height: 12),
+                      const Text('آخر جلسات التسميع', style: TextStyle(fontWeight: FontWeight.bold)),
+                      for (final e in sessions.take(5))
+                        _InfoTile(title: e.date, value: 'الربع ${e.newRub} | ${e.grade} | الأخطاء ${e.mistakes}'),
+                      if (sessions.isEmpty) const Text('لا توجد جلسات مسجلة'),
+                      const SizedBox(height: 12),
+                      const Text('آخر المراجعات', style: TextStyle(fontWeight: FontWeight.bold)),
+                      for (final e in revisions.take(5))
+                        _InfoTile(title: e.date, value: '${e.count} ربع | ${e.status}'),
+                      if (revisions.isEmpty) const Text('لا توجد مراجعات مسجلة'),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               const Text(
                 'عرض للقراءة فقط. لا يمكن تعديل بيانات الطالب حتى استكمال التحقق من الصلاحيات وتوافق بنية البيانات مع موقع الويب.',
