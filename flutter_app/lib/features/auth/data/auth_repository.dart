@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final firebaseAuthProvider =
@@ -37,6 +38,15 @@ class AuthRepository {
       email: email.trim().toLowerCase(),
       password: password,
     );
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    if (!kIsWeb) {
+      throw UnsupportedError('تسجيل Google متاح حاليًا في نسخة الويب فقط');
+    }
+    final provider = GoogleAuthProvider();
+    provider.setCustomParameters({'prompt': 'select_account'});
+    return _auth.signInWithPopup(provider);
   }
 
   Future<void> signOut() => _auth.signOut();
