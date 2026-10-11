@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/auth_gate_screen.dart';
 import '../../features/students/presentation/students_screen.dart';
 import '../../features/history/history_screen.dart';
+import '../../features/analytics/presentation/analytics_screen.dart';
 import '../../features/students/presentation/student_detail_screen.dart';
 import '../../features/sessions/presentation/workspace_screen.dart';
 
@@ -14,6 +15,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const AuthGateScreen(),
+      ),
+      GoRoute(
+        path: '/analytics',
+        builder: (context, state) => const AnalyticsScreen(),
       ),
       GoRoute(
         path: '/history/sessions',
