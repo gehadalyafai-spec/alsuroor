@@ -14,7 +14,7 @@ class AuthGateScreen extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
 
     return auth.when(
-      data: (user) => user == null ? const LoginScreen() : const _SupervisorGate(),
+      data: (user) => user == null ? const LoginScreen() : const SupervisorGate(),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
@@ -33,8 +33,8 @@ class AuthGateScreen extends ConsumerWidget {
   }
 }
 
-class _SupervisorGate extends ConsumerWidget {
-  const _SupervisorGate();
+class SupervisorGate extends ConsumerWidget {
+  const SupervisorGate({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
