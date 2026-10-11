@@ -86,7 +86,7 @@ class HomeScreen extends ConsumerWidget {
             Row(
               children: [
                 Expanded(child: _FeatureCard(title: 'التسميع', icon: Icons.record_voice_over_rounded, onTap: () => context.push('/workspace/recitation'))),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(child: _FeatureCard(title: 'الورد', icon: Icons.fact_check_rounded, onTap: () => context.push('/workspace/review'))),
               ],
             ),
@@ -94,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
             Row(
               children: [
                 Expanded(child: _FeatureCard(title: 'التقارير', icon: Icons.insights_rounded, onTap: () => context.push('/workspace/reports'))),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(child: _FeatureCard(title: 'المصحف', icon: Icons.menu_book_rounded, onTap: () => context.push('/workspace/mushaf'))),
               ],
             ),
