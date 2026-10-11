@@ -160,7 +160,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
 
   Widget _notice() => const Card(
     child: Padding(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       child: Row(children: [
         Icon(Icons.verified_user_outlined),
         SizedBox(width: 12),
